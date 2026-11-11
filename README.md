@@ -6,13 +6,13 @@
 
 目前發布：**v0.2.2 — OSC Control**（2026-10-18）。
 
-- [下載 DMG](https://github.com/andyue/surtitleStage/releases/download/v0.5.2/SubtitleStage-0.5.2-build12.dmg)
-- [Release 說明](https://github.com/andyue/surtitleStage/releases/tag/v0.5.2)
+- [下載 DMG](https://github.com/andyue/surtitleStage/releases/download/v0.5.3/SubtitleStage-0.5.3-build13.dmg)
+- [Release 說明](https://github.com/andyue/surtitleStage/releases/tag/v0.5.3)
 - [目前進度與下一版範圍](ROADMAP.md)
 - [最新 V0.5 驗證](V0.5_VERIFICATION.md)
 - [OSC 指令與限制](OSC.md)
 
-App 版本號不代表同號 Roadmap 里程碑已全部完成。本機開發版本為 **v0.5.2**：加入多路 Syphon、NDI 與 Alpha，保留文件匯入、Cue 編輯與 Output Region Mapping。上述 GitHub 連結已於 2026-10-21 更新為 v0.5.2（build 12）；本機新版安裝檔為 `dist/SubtitleStage-0.5.2-build12.dmg`。
+App 版本號不代表同號 Roadmap 里程碑已全部完成。最新版本為 **v0.5.3（build 13）**：新增 Glypheo 多 Track 純文字匯入與重新匯入，保留 Syphon、NDI、文件匯入、Cue 編輯與 Output Region Mapping。
 
 ## 建置與啟動
 
@@ -197,7 +197,7 @@ Build 9 可見安裝檔副本：`dist/SubtitleStage-0.4.0-build9.dmg`（2026-10-
 
 ## v0.5 Syphon 輸出
 
-本機安裝檔：dist/SubtitleStage-0.5.2-build12.dmg。
+本機安裝檔：dist/SubtitleStage-0.5.3-build13.dmg。
 
 1. 建立 Output slot，在 Layout Setting 設定字幕位置與 Region mapping；不需要指派實體螢幕。
 2. **Edit → Video Output** 勾選 **Enable Syphon**；Output 本身也必須 enabled。
