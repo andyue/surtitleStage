@@ -15,7 +15,7 @@
 - Before changes: 99 tests, 12 desktop/environment skips, no failures with UDP socket permission. The sandbox-only attempt failed the existing OSC socket test.
 - After implementation: 103 tests, 12 skips, no failures, including the local user-provided sample (2,839 cues, two groups, four tracks). Source document remains outside the repository.
 - Synthetic tests cover multiline Unicode, track columns, disabled-cue defaults and invalid/duplicate source IDs. Additional re-import test checks Cue identity preservation; the final targeted run passed 4 synthetic tests, with the optional local-sample test skipped because its environment variable was not set (the real sample passed in the full run above).
-- Release compilation passed for both x86_64 and arm64. Existing packaging script then failed when `sips` tried to convert `Scripts/AppIcon.svg` (Cannot extract image from file / Error 13); no new DMG was produced.
+- Release compilation passed for both x86_64 and arm64. The sandbox attempt failed during SVG icon conversion; rerunning the unchanged build script with normal local permissions succeeded, including Universal App packaging, signature verification, ZIP and DMG generation. Artifacts are local under `.build/`; the GitHub release assets were not replaced.
 - No manual native UI, IME, physical output or original Glypheo visual-fidelity acceptance performed in this task.
 
 ## Limitations
