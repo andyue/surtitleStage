@@ -1,0 +1,13 @@
+.build/
+.swiftpm/
+.DS_Store
+
+# Local release artifacts and production documents
+/dist/
+*.dmg
+*.glypheo
+*.substage
+.env
+.env.*
+*.pem
+*.key

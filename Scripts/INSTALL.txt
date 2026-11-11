@@ -1,0 +1,8 @@
+SubtitleStage 開發測試版
+
+1. 將 SubtitleStage.app 拖到「應用程式」資料夾。
+2. 第一次啟動若 macOS 阻擋，請在 Finder 對 App 按右鍵，選擇「打開」。
+3. 這是本機 ad-hoc 簽名的開發版，尚未經 Apple notarize。
+
+若使用 ZIP，解壓後會看到「SubtitleStage Release」資料夾。
+若使用 DMG，打開磁碟映像後再把 App 拖到「應用程式」。
