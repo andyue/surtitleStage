@@ -91,9 +91,9 @@ struct CueTable: View {
     }
 
     private func select(_ cell: CellID, requestFocus: Bool) {
-        focusedCell = cell
-        store.playback.selectedCueID = cell.cueID
-        store.selectedSurtitleID = cell.languageID
+        if focusedCell != cell { focusedCell = cell }
+        if store.playback.selectedCueID != cell.cueID { store.playback.selectedCueID = cell.cueID }
+        if store.selectedSurtitleID != cell.languageID { store.selectedSurtitleID = cell.languageID }
         if requestFocus { focusRevision += 1 }
     }
 
@@ -186,12 +186,23 @@ private struct CueCellTextView: NSViewRepresentable {
 
 @MainActor
 enum CueRowMetrics {
+    private static let cache: NSCache<NSString, NSNumber> = {
+        let cache = NSCache<NSString, NSNumber>(); cache.countLimit = 12_000; return cache
+    }()
+    private(set) static var measurementCount = 0
+    static func resetCache() { cache.removeAllObjects(); measurementCount = 0 }
+
     static func height(texts: [String], columnWidth: CGFloat) -> CGFloat {
         let font = NSFont.systemFont(ofSize: 18)
         let width = max(1, columnWidth - 20)
-        let height = texts.map { text in
-            NSAttributedString(string: text + "\u{200b}", attributes: [.font: font])
+        let height: CGFloat = texts.map { text -> CGFloat in
+            let key = "\(width):\(text)" as NSString
+            if let cached = cache.object(forKey: key) { return CGFloat(cached.doubleValue) }
+            let measured = NSAttributedString(string: text + "\u{200b}", attributes: [.font: font])
                 .boundingRect(with: NSSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height
+            cache.setObject(NSNumber(value: Double(measured)), forKey: key)
+            measurementCount += 1
+            return measured
         }.max() ?? 0
         return max(34, ceil(height) + 12)
     }
@@ -209,7 +220,7 @@ private struct SurtitleHeader: View {
                     .textFieldStyle(.roundedBorder).padding(.horizontal, 6).focused($focused)
                     .onAppear { focused = true }
                     .onSubmit { editing = false }
-                    .onChange(of: focused) { _, value in if !value { editing = false } }
+                    .onChange(of: focused) { value in if !value { editing = false } }
             } else {
                 Text(language.name).font(.headline).frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                     .onTapGesture { store.selectedSurtitleID = language.id }

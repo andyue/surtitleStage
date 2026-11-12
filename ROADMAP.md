@@ -22,13 +22,13 @@ Reliability
 
 ---
 
-# 目前狀態與下一版 — 2026-10-21
+# 目前狀態與下一版 — 2026-11-11
 
-目前 GitHub 已發布 **App v0.5.2（build 12）**，與本機版本一致。App 版本號與下方功能里程碑分開管理；V0.3 mapping 程式已納入，但 V0.2 仍有後續工具未完成，V0.3 已獲使用者確認實體多外接螢幕與電腦螢幕 Fade OK，其餘現場驗收仍待進行。
+目前發布版本為 **App v0.5.4（build 16）**，包含本文件末尾的操作工作流與 macOS 13 相容增量。App 版本號與下方功能里程碑分開管理；V0.3 mapping 程式已納入，但 V0.2 仍有後續工具未完成，V0.3 已獲使用者確認實體多外接螢幕與電腦螢幕 Fade OK，其餘現場驗收仍待進行。
 
 ## 目前工作：v0.5.0 Inter-Application Video Output
 
-使用者已授權 V0.5。本機版本 0.5.2（build 12），格式 11。
+使用者已授權 V0.5；以下為 0.5.2（build 12）、格式 11 的歷史基線，目前增量為 0.5.4／格式 12。
 
 2026-10-21：依 QLab 反向畫面回報修正 Syphon 垂直座標轉換；新增方向回歸測試，修正後 QLab 人工驗收待確認。其後依使用者授權實作 NDI sender，採可選 runtime，詳見 NDI.md。
 
@@ -688,3 +688,12 @@ Nice-to-have：
 ## 使用者要求增量：Glypheo 匯入（2026-11-11）
 
 已接入 `.glypheo` 純文字多 Track 匯入、欄位映射、預覽、停用 Cue 保護及來源 ID re-import；沿用 V0.4 Import Workspace。不改變 V0.6 範圍或宣稱完成實機驗收。詳見 GLYPHEO_VERIFICATION.md。
+
+## 使用者要求增量：v0.5.4（2026-11-11）
+
+- Cue 表保留左側，Edit 在右上，Playback／Show Controls 在右下。
+- 可設定的 Show Controls 區域快捷鍵，預設僅 Space＝GO／Next；文字／IME／對話框與重複按鍵防護。
+- App 與 Syphon／Metal shader 部署目標降至 macOS 13，維持 Universal。
+- 專案格式升至 12（容納負行距與負座標，舊值原樣遷移）；macOS 13 實機驗收待完成，不等同本機建置與測試。
+
+- 2026-11-12 使用者增量：2 Left／2 Right 本機版面偏好；Show Controls 可獨立為置頂 utility panel，關閉後回主視窗。Playback 預覽不分離。

@@ -17,28 +17,30 @@ struct LayoutCanvas: View {
                         .offset(x: transform.offsetX, y: transform.offsetY)
                         .allowsHitTesting(false)
                     ForEach(frame.layers(for: outputID)) { language in
-                        LanguageBox(language: language, canvas: canvas, transform: transform, selected: selectedLanguageID == language.id, select: {
-                            selectedLanguageID = language.id
-                            store.selectedSurtitleID = language.id
+                        LanguageBox(language: language, selectionFrame: CanvasContentRenderer.selectionFrame(text: frame.text(for: language), style: frame.style(for: language), frame: language.frame), canvas: canvas, transform: transform, selected: selectedLanguageID == language.id, select: {
+                            if selectedLanguageID != language.id { selectedLanguageID = language.id }
+                            if store.selectedSurtitleID != language.id { store.selectedSurtitleID = language.id }
                             NSApp.keyWindow?.makeFirstResponder(nil)
-                        }, update: { store.setLanguageFrame(language.id, frame: $0, outputID: outputID) })
+                        }, update: { store.setLanguageFrame(language.id, frame: $0, outputID: outputID) }, end: { store.endHistoryGroup() })
                     }
                 }
             }
-        }.frame(minHeight: 250)
+        }.frame(minHeight: 200).padding(24).background(Color.secondary.opacity(0.08))
     }
 }
 
 private struct LanguageBox: View {
     let language: LanguageLayer
+    let selectionFrame: PixelFrame
     let canvas: CanvasDefinition
     let transform: CanvasTransform
     let selected: Bool
     let select: () -> Void
     let update: (PixelFrame) -> Void
+    let end: () -> Void
     @State private var dragOrigin: PixelFrame?
     var body: some View {
-        let f = language.frame
+        let f = selectionFrame
         ZStack(alignment: .topLeading) {
             Rectangle().fill(selected ? Color.accentColor.opacity(0.08) : Color.clear)
             Rectangle().stroke(selected ? Color.accentColor : .gray, style: StrokeStyle(lineWidth: selected ? 2 : 1, dash: selected ? [] : [5, 3]))
@@ -62,11 +64,10 @@ private struct LanguageBox: View {
     private func drag(resizing: Bool) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
-                select()
-                if dragOrigin == nil { dragOrigin = language.frame }
+                if dragOrigin == nil { select(); dragOrigin = resizing ? selectionFrame : language.frame }
                 guard let origin = dragOrigin else { return }
                 update(origin.adjusted(dx: value.translation.width / transform.scale, dy: value.translation.height / transform.scale, resizing: resizing, canvas: canvas))
             }
-            .onEnded { _ in dragOrigin = nil }
+            .onEnded { _ in dragOrigin = nil; end() }
     }
 }

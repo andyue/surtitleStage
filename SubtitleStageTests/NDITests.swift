@@ -41,7 +41,7 @@ final class NDITests: XCTestCase {
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(p)) as? [String: Any])
         json["projectFormatVersion"] = 10
         let migrated = try JSONDecoder().decode(Project.self, from: JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(migrated.projectFormatVersion, 11)
+        XCTAssertEqual(migrated.projectFormatVersion, 12)
         XCTAssertFalse(migrated.outputs[0].ndi.isEnabled)
         XCTAssertEqual(migrated.cues, p.cues); XCTAssertEqual(migrated.outputs[0].id, p.outputs[0].id)
         XCTAssertEqual(migrated.outputs[0].syphon, p.outputs[0].syphon)

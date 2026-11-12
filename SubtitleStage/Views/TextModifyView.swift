@@ -23,8 +23,10 @@ struct TextModifyView: View {
                     NumericField(value: binding(\.characterSpacing, .characterSpacing, cue: cue, id: id), range: -100...1000).frame(width: 110)
                 }
                 row("Line spacing", property: .lineSpacing, cue: cue, id: id) {
-                    NumericField(value: binding(\.lineSpacing, .lineSpacing, cue: cue, id: id), range: 0...2048).frame(width: 110)
+                    NumericField(value: binding(\.lineSpacing, .lineSpacing, cue: cue, id: id), range: -2048...2048).frame(width: 110)
                 }
+                Text("Line spacing: 0 = natural spacing; negative values tighten the lines (canvas pixels).")
+                    .font(.caption).foregroundStyle(.secondary)
                 row("Color", property: .color, cue: cue, id: id) {
                     ColorPicker("Color", selection: colorBinding(cue: cue, id: id), supportsOpacity: true).labelsHidden()
                 }
@@ -68,7 +70,7 @@ struct TextModifyView: View {
                     .font(.caption).foregroundStyle(.green)
                 let font = currentStyle(cue: cue, id: id).fontName
                 if NSFont(name: font, size: 12) == nil { Text("Font unavailable: \(font). System fallback will be used.").foregroundStyle(.orange) }
-            } else { ContentUnavailableView("Select a cue cell", systemImage: "textformat") }
+            } else { EmptyStateView("Select a cue cell", systemImage: "textformat") }
         }
     }
     private func currentStyle(cue: Cue, id: UUID) -> TextStyle {

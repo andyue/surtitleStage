@@ -15,6 +15,9 @@ final class NDIOutputManager: ObservableObject {
     private var inFlight = false
     private var targets: [NDITarget] = []
     private var sessionID: UUID?
+    private var validatedOutputs: [OutputConfiguration] = []
+    private var validatedCanvases: [CanvasDefinition] = []
+    private(set) var configurationValidationCount = 0
 
     func start(store: ProjectStore, runtimePath: String = "") {
         guard !isStarting, activeOutputIDs.isEmpty, !store.isBusy else { return }
@@ -23,6 +26,7 @@ final class NDIOutputManager: ObservableObject {
         do { prepared = try NDITarget.configured(in: store.project); resolvedPath = try NDIRuntimeLocation.resolve(runtimePath) }
         catch { status = error.localizedDescription; return }
         generation += 1
+        validatedOutputs = []; validatedCanvases = []; configurationValidationCount = 0
         let token = generation, session = store.sessionID, transport = transport
         isStarting = true; status = "Starting NDI…"
         queue.async { [weak self] in
@@ -61,9 +65,19 @@ final class NDIOutputManager: ObservableObject {
         let transport = transport
         queue.async { transport.stop() }
     }
+    func updateConnectionCount(_ value: Int) {
+        if connectionCount != value { connectionCount = value }
+    }
+    private func configurationMatches(_ project: Project) -> Bool {
+        guard project.outputs != validatedOutputs || project.canvases != validatedCanvases else { return true }
+        configurationValidationCount += 1
+        guard (try? NDITarget.configured(in: project)) == targets else { return false }
+        validatedOutputs = project.outputs; validatedCanvases = project.canvases
+        return true
+    }
     private func tick(store: ProjectStore) {
         guard !activeOutputIDs.isEmpty, !inFlight else { return }
-        guard store.sessionID == sessionID, (try? NDITarget.configured(in: store.project)) == targets else {
+        guard store.sessionID == sessionID, configurationMatches(store.project) else {
             stop(); status = "NDI stopped after project or output settings changed. Review settings and start again."; return
         }
         inFlight = true
@@ -78,7 +92,7 @@ final class NDIOutputManager: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self, self.generation == token else { return }
                 self.inFlight = false
-                self.connectionCount = result.0
+                self.updateConnectionCount(result.0)
                 if let errorMessage = result.1 { self.stop(); self.status = "NDI stopped: " + errorMessage }
             }
         }

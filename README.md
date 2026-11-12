@@ -1,18 +1,18 @@
 # SubtitleStage — Surtitle 工作介面
 
-原生 macOS 字幕播放工具，使用 SwiftUI / AppKit / Metal，v0.5 加入官方 Syphon framework。最低 macOS 14，建置需要 Swift 6 / Xcode。本版包含使用者指定的多 Surtitle 表格、獨立 output Layout、Text Modify 與逐項 Batch；包含 v0.4 文件匯入；各里程碑與實機驗收狀態見 ROADMAP.md。
+原生 macOS 字幕播放工具，使用 SwiftUI / AppKit / Metal，v0.5 加入官方 Syphon framework。v0.5.4 最低部署版本 macOS 13，建置需要 Swift 6 / Xcode。本版包含使用者指定的多 Surtitle 表格、獨立 output Layout、Text Modify 與逐項 Batch；包含 v0.4 文件匯入；各里程碑與實機驗收狀態見 ROADMAP.md。
 
 ## 版本與開發狀態
 
 目前發布：**v0.2.2 — OSC Control**（2026-10-18）。
 
-- [下載 DMG](https://github.com/andyue/surtitleStage/releases/download/v0.5.3/SubtitleStage-0.5.3-build13.dmg)
-- [Release 說明](https://github.com/andyue/surtitleStage/releases/tag/v0.5.3)
+- [下載 DMG](https://github.com/andyue/surtitleStage/releases/download/v0.5.4/SubtitleStage-0.5.4-build16.dmg)
+- [Release 說明](https://github.com/andyue/surtitleStage/releases/tag/v0.5.4)
 - [目前進度與下一版範圍](ROADMAP.md)
 - [最新 V0.5 驗證](V0.5_VERIFICATION.md)
 - [OSC 指令與限制](OSC.md)
 
-App 版本號不代表同號 Roadmap 里程碑已全部完成。最新版本為 **v0.5.3（build 13）**：新增 Glypheo 多 Track 純文字匯入與重新匯入，保留 Syphon、NDI、文件匯入、Cue 編輯與 Output Region Mapping。
+App 版本號不代表同號 Roadmap 里程碑已全部完成。最新版本為 **v0.5.4（build 16）**：加入版面配置、浮動 Show Controls、自訂熱鍵與單頁匯入，改善操作效能，最低部署目標為 macOS 13。
 
 ## 建置與啟動
 
@@ -78,9 +78,13 @@ Text Modify 的逐項與 Batch 變更都會立即更新正在播放的畫面。
 
 ## 全畫面輸出與快捷鍵
 
-可選擇本機螢幕，也可同時設定多個連接的顯示器。Start Output 會立即 take 當下選取的 Cue，並用黑底字幕覆蓋設定的整個螢幕。把操作螢幕本身設為 output 時，輸出視窗取得鍵盤焦點，操作介面被覆蓋。Esc 關閉所有輸出並回到操作介面，保留 Live Cue 與黑場狀態；再次 Start Output 會顯示當下選取的 Cue。
+可選擇本機螢幕，也可同時設定多個連接的顯示器。Start Output 會立即 take 當下選取的 Cue，並用黑底字幕覆蓋設定的整個螢幕。把操作螢幕本身設為 output 時，輸出視窗取得鍵盤焦點，操作介面被覆蓋。雙擊輸出畫面關閉所有輸出並回到操作介面，保留 Live Cue 與黑場狀態；再次 Start Output 會顯示當下選取的 Cue。
 
-Space = GO、左箭頭 = Previous、B = 切換淡化黑場。進入 output 的 Layout Setting detail 並點選 Surtitle 後，方向鍵改為移動該 Surtitle。雙擊 Cue 編號會直接 take 該 Cue；Blackout 中 take 仍維持黑場，Restore 才顯示新 Live Cue。無輸出時，操作介面的 Esc 維持淡化黑場功能；有輸出且操作介面未編輯文字時，Esc 退出輸出。文字欄、IME、對話框與帶修飾鍵事件仍受焦點保護，不再需要 Arm Keyboard。按住播放鍵不會連續跳 Cue。
+v0.5.4 起，預設播放快捷鍵為 **Space = GO / Next、Esc = Stop Output**，且只在 **Show Controls** 取得鍵盤焦點時生效。點擊 Show Controls 的非輸入區域或控制按鈕後，會顯示焦點框與 Hotkeys active；點擊 Cue 表、Edit 或文字欄位即解除。文字編輯、中文 IME、對話框與按鍵長按重複不會觸發播放。輸出視窗僅保留 Esc 停止輸出；雙擊輸出畫面也可停止輸出。檔案選單的 Command 快捷鍵維持不變。
+
+Show Controls → **Hotkeys…** 可指定 GO / Next、Previous、Blackout / Restore、Blackout、Restore、Start / Stop Output、Opacity ±5%。支援單鍵與 Shift／Control／Option 組合，Command 保留給選單；重複指派會阻擋。Clear 取消個別指定，Restore Defaults 回復 Space 與 Esc。設定保存在此 Mac，不改動字幕專案格式。
+
+Layout Setting 選取 Surtitle 後，方向鍵仍可微調版面位置；進入 Show Controls 後依播放快捷鍵設定處理。雙擊 Cue 編號仍可播放該 Cue。Blackout 中切換 Cue 仍保留黑場。
 
 輸出中先 Stop Output 才能增刪 output slot。顯示器斷線時安全停止所有輸出，重連不自動重啟。
 
@@ -100,7 +104,7 @@ Canvas 預設 1920 × 1080；幾何從 Canvas 寬高推導，支援非標準比�
 - `OutputPreviews.swift` / `LayoutView.swift` / `LayoutCanvas.swift`：output 總覽與個別排列。
 - `TextModifyView.swift` / `NumericField.swift` / `FontSelector.swift`：逐項調整、原生數值／字型控制。
 - `TextFormatting.swift` / `TextEditing.swift`：顏色、裝飾、逐屬性 Batch。
-- `CanvasView.swift` / `OutputManager.swift`：共用 renderer、全螢幕輸出與 Esc 退出。
+- `CanvasView.swift` / `OutputManager.swift`：共用 renderer、全螢幕輸出與雙擊退出。
 
 最新結果與待驗收項目見 `V0.5_VERIFICATION.md`，先前人工驗收見 `SURTITLE_WORKFLOW_VERIFICATION.md`。早期記錄保留在 V0.1_VERIFICATION.md 和 LAYOUT_VERIFICATION.md。
 
@@ -197,7 +201,7 @@ Build 9 可見安裝檔副本：`dist/SubtitleStage-0.4.0-build9.dmg`（2026-10-
 
 ## v0.5 Syphon 輸出
 
-本機安裝檔：dist/SubtitleStage-0.5.3-build13.dmg。
+本機安裝檔：dist/SubtitleStage-0.5.4-build16.dmg。
 
 1. 建立 Output slot，在 Layout Setting 設定字幕位置與 Region mapping；不需要指派實體螢幕。
 2. **Edit → Video Output** 勾選 **Enable Syphon**；Output 本身也必須 enabled。
@@ -222,12 +226,28 @@ NDI 技術上可加入；v0.5.1 仍未實作 sender。正式整合應使用官�
 
 Edit → Video Output 啟用 NDI；各 Output 可設定來源名稱、透明背景與 30／60 fps。按 Start NDI，再 GO；本機已安裝的官方 runtime 可自動載入，未安裝時提供下載／選擇入口。格式 11 可讀舊專案。完整限制與驗收見 [NDI.md](NDI.md)。NDI® is a registered trademark of Vizrt NDI AB. [NDI 官網](https://ndi.video/)
 
-## Glypheo 匯入
+## 單頁文件匯入
 
-File → Import 可選擇 `.glypheo`。所有 Group 按原順序轉成一份 Cue 表，各 Track 為獨立文字欄位。Source ID、Cue Number、Group / Status 預設分別映射來源鍵、順序編號與備註；將各 Track 映射到既有 Surtitle 或選 New Surtitle，接著 Preview → Review Changes → Apply Checked Changes。取消不修改專案，套用可 Undo。
+File → Import Document 選擇檔案後，自動顯示各字幕軌的對應與勾選預覽，確認後按一次 Import 即可。Source ID／Cue Number 自動處理，Group／Status 不匯入，不再需要 Build Preview／Review／Apply 多階段操作。字幕文字可在匯入後的 Cue 表編輯。
 
-保留 Unicode、原始換行與來源鍵，並可透過 File → Re-import 比對更新。Glypheo 停用的 Cue 與全空白 Cue 預設忽略，可在預覽中逐列啟用。原始群組名稱放入備註，Cue Number 依文件順序重新編號。
+Glypheo 多 Track 以各自文字欄位匯入，保留 Unicode 與換行；來源停用 Cue 與全空白 Cue 預設跳過，可勾選 Include blank / disabled cues 納入。檔案中的字型、字元樣式、轉場、Panel 與輸出配置不移轉。XLSX 保留工作表與文字欄位對應，常見來源 ID／編號欄位自動判斷；DOCX 可選目標 Surtitle。重新匯入與依編號合併仍保留衝突及 Live Cue 保護。取消不修改專案，套用可 Undo。
 
-本次移轉為純文字：不移轉 Glypheo 字型、字元樣式、群組階層、轉場、Panel 或輸出設定。匯入後需檢查 SubtitleStage Layout 與輸出。尚未驗證所有 Glypheo 版本，無法辨識的檔案會報錯而不修改專案。
+正式演出字幕與本機產物不納入 Git。
 
-正式演出字幕與本機產物不納入 Git。可用 `GLYPHEO_TEST_FILE=/path/to/sample.glypheo zsh Scripts/test.sh --filter GlypheoTests` 驗證本機 Life of Pi 樣本；測試只讀取檔案，不上傳內容。
+## v0.5.4（build 16）
+
+左側 Cue 表、右上 Edit、右下 Playback／Show Controls（上下區域可拖曳調整）。App、Syphon framework 與 Metal shader 最低部署版本均為 macOS 13，提供 Intel／Apple Silicon Universal 建置。此版本 macOS 13 實機驗收仍待完成；GitHub 下載版本為 v0.5.4（build 16）。
+
+
+v0.5.4 其他調整：
+
+- 移除 Cue Details 頁；舊專案的名稱／備註等資料仍保留，避免資料遺失。
+- File → Open Recent：最近 10 份開啟／儲存成功的專案，可 Clear Menu；不包含未存檔的新專案。
+- Line spacing 支援負值，可縮小原生行距。黑場淡化新預設為 1 秒，既有專案明確儲存的時間不被覆寫。
+- Source subtitle layout 可超出 Canvas（位置 ±32,768、尺寸 1–32,768 pixels），實際輸出仍裁切至 Canvas／Region。框線依文字高度顯示，第一軌不再顯示全 Canvas 高度；舊版配置的文字位置保持不變。
+- 專案格式升至 12，明確容納負行距／負座標；可讀取格式 1–11。儲存為 12 後需使用此版或更新版本開啟。
+- 切頁狀態與主畫面分離、字型按需載入、列高快取、減少重複欄位更新與拖曳狀態通知。效能數據與驗收範圍見 V0.5.4_VERIFICATION.md。
+
+### Operator layout (v0.5.4)
+
+Use the top-bar Layout picker: **2 Left** stacks Cue/Playback on the left with Edit on the right; **2 Right** puts Cue on the left and Edit/Playback on the right. The choice is saved on this Mac. **Float Show Controls** opens only the transport in an always-on-top utility window; the preview stays in the main window. Close it or choose **Dock Show Controls** to return the controls without stopping output. Click inside Show Controls to arm its hotkeys; text editing still takes priority. The panel floats above normal windows, below the dedicated production output.

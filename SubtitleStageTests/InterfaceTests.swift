@@ -29,7 +29,14 @@ final class InterfaceTests: XCTestCase {
         store.addOutput(displayID: 101); store.addOutput(displayID: 102)
         let outputID = store.project.outputs[0].id
         _ = store.addRegion(to: outputID)
+        let layoutSuite = "SubtitleStage.LayoutTests.\(UUID().uuidString)"
+        let layoutDefaults = try XCTUnwrap(UserDefaults(suiteName: layoutSuite))
+        defer { layoutDefaults.removePersistentDomain(forName: layoutSuite) }
+        layoutDefaults.set("2 Left", forKey: "SubtitleStage.OperatorLayout")
         let images: [(String, AnyView)] = [
+            ("SubtitleStage-table-left.png", AnyView(OperatorView(store: store, output: output, osc: OSCController()).defaultAppStorage(layoutDefaults))),
+            ("SubtitleStage-controls.png", AnyView(ShowControlsView(store: store, output: output).padding())) ,
+            ("SubtitleStage-hotkeys.png", AnyView(HotkeySettingsView(settings: store.hotkeys))),
             ("SubtitleStage-ndi-output.png", AnyView(ScrollView { NDISettingsView(store: store, ndi: NDIOutputManager()).padding() }.frame(width: 700, height: 980))),
             ("SubtitleStage-video-output.png", AnyView(ScrollView { VideoOutputView(store: store, syphon: SyphonOutputManager(), ndi: NDIOutputManager()).padding() }.frame(width: 700, height: 980))),
             ("SubtitleStage-mapping.png", AnyView(ScrollView { OutputMappingView(store: store, output: output, outputID: outputID).padding() }.frame(width: 700, height: 980))),
@@ -80,7 +87,7 @@ final class InterfaceTests: XCTestCase {
     }
 
     @MainActor
-    func testOwnScreenOutputAndEscape() async throws {
+    func testOwnScreenOutputIgnoresKeysAndDoubleClickStops() async throws {
         guard ProcessInfo.processInfo.environment["SUBTITLESTAGE_UI_CHECK"] == "1" else { throw XCTSkip("Desktop output test") }
         _ = NSApplication.shared
         guard let screen = NSScreen.screens.first else { throw XCTSkip("The test runner has no NSScreen connection.") }
@@ -108,7 +115,17 @@ final class InterfaceTests: XCTestCase {
         XCTAssertGreaterThan(outputWindow.level.rawValue, NSWindow.Level.mainMenu.rawValue)
         let snapshot = store.playback.liveFrame
         let escape = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: outputWindow.windowNumber, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+        // Escape is tested after the unassigned Space key.
+        XCTAssertFalse(manager.activeDisplayIDs.isEmpty)
+        let space = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: outputWindow.windowNumber, context: nil, characters: " ", charactersIgnoringModifiers: " ", isARepeat: false, keyCode: 49))
+        outputWindow.keyDown(with: space)
+        XCTAssertEqual(store.playback.liveCueID, selectedID)
         outputWindow.keyDown(with: escape)
+        XCTAssertTrue(manager.activeDisplayIDs.isEmpty)
+        manager.startConfigured(store: store)
+        let restarted = try XCTUnwrap(NSApp.windows.first { $0 is OutputWindow && $0.isVisible })
+        let click = try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: outputWindow.windowNumber, context: nil, eventNumber: 1, clickCount: 2, pressure: 1))
+        restarted.sendEvent(click)
         XCTAssertTrue(manager.activeDisplayIDs.isEmpty)
         XCTAssertFalse(outputWindow.isVisible)
         XCTAssertTrue(operatorWindow.isVisible)

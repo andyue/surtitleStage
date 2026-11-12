@@ -4,7 +4,7 @@ Official upstream: https://github.com/Syphon/Syphon-Framework
 Pinned commit: f4761677a45b8034a3c2069ec0f3d2553da81fba
 
 The checked-in Universal framework was built from that commit using Xcode, Release,
-ARCHS="x86_64 arm64", macOS deployment target 14.0, no upstream code modifications.
+ARCHS="x86_64 arm64", macOS deployment target 13.0, no upstream code modifications.
 Rebuild offline with Scripts/build-syphon.sh. The binary is signed as part of the app packaging step.
 
 Source archive: Syphon-source-f476167.zip

@@ -14,7 +14,6 @@ final class OutputManager: NSObject, ObservableObject {
     @Published private(set) var activeDisplayIDs: Set<UInt32> = []
     @Published var status: String?
     private var windows: [UInt32: NSWindow] = [:]
-    private var keyboardMonitor: Any?
     private weak var playbackStore: ProjectStore?
     weak var operatorWindow: NSWindow?
 
@@ -74,10 +73,9 @@ final class OutputManager: NSObject, ObservableObject {
         store.showSelectedCue()
         stopAll()
         playbackStore = store
-        installKeyboardMonitor()
         for (configuration, screen) in targets {
             let window = OutputWindow(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: screen)
-            window.handleKey = { [weak self] event in self?.handleOutputKey(event) ?? false }
+            window.stopOutput = { [weak self] in self?.stopAll() }
             window.isReleasedWhenClosed = false
             window.backgroundColor = .black
             window.level = .init(rawValue: NSWindow.Level.mainMenu.rawValue + 1)
@@ -96,33 +94,10 @@ final class OutputManager: NSObject, ObservableObject {
             window.makeKeyAndOrderFront(nil)
         }
         let unassignedCount = configurations.count - assigned.count
-        status = "\(windows.count) outputs running\(unassignedCount > 0 ? " · \(unassignedCount) unassigned" : "") · Esc exits output"
-    }
-    private func installKeyboardMonitor() {
-        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let consumed = MainActor.assumeIsolated { self?.handleOutputKey(event) ?? false }
-            return consumed ? nil : event
-        }
-    }
-    /// Only our output windows bypass editing guards; operator IME handling is unchanged.
-    func handleOutputKey(_ event: NSEvent) -> Bool {
-        guard let window = event.window, windows.values.contains(where: { $0 === window }),
-              event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty else { return false }
-        if event.keyCode == 53 { stopAll(); return true }
-        guard let action = ShortcutPolicy.action(keyCode: event.keyCode, characters: event.charactersIgnoringModifiers ?? "", isEditing: false, isOperatorWindow: true, hasModalUI: false, hasModifiers: false) else { return false }
-        guard !event.isARepeat else { return true }
-        switch action {
-        case .go: playbackStore?.go()
-        case .previous: playbackStore?.previous()
-        case .toggleBlackout: playbackStore?.toggleBlackout()
-        case .blackout: break
-        }
-        return true
+        status = "\(windows.count) outputs running\(unassignedCount > 0 ? " · \(unassignedCount) unassigned" : "") · Double-click output to stop"
     }
     func stopAll() {
         let hadOutputs = !windows.isEmpty
-        if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor) }
-        keyboardMonitor = nil
         for window in windows.values { window.close() }
         windows.removeAll(); activeDisplayIDs.removeAll()
         status = nil
@@ -131,10 +106,15 @@ final class OutputManager: NSObject, ObservableObject {
     }
 }
 
-private final class OutputWindow: NSWindow {
-    var handleKey: ((NSEvent) -> Bool)?
+final class OutputWindow: NSWindow {
+    var stopOutput: (() -> Void)?
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown, event.clickCount == 2 { stopOutput?(); return }
+        super.sendEvent(event)
+    }
     override func keyDown(with event: NSEvent) {
-        if handleKey?(event) != true { super.keyDown(with: event) }
+        // A dedicated escape route remains available when output covers the operator screen.
+        if event.keyCode == 53, event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty, !event.isARepeat { stopOutput?() }
     }
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }

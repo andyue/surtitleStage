@@ -10,11 +10,6 @@ struct CueNumberPreview: Identifiable {
 extension ProjectStore {
     var checkedCues: [Cue] { project.cues.filter { checkedCueIDs.contains($0.id) } }
 
-    func editCueDetail(_ id: UUID, key: WritableKeyPath<Cue, String>, value: String) {
-        guard let index = project.cues.firstIndex(where: { $0.id == id }), project.cues[index][keyPath: key] != value else { return }
-        change(historyGroup: "detail-\(id)-\(key)") { $0.cues[index][keyPath: key] = value }
-    }
-
     func duplicateSelectedCue() {
         guard let source = selectedCue, let index = project.cues.firstIndex(where: { $0.id == source.id }) else { return }
         var copy = source

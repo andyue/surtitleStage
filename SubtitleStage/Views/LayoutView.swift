@@ -36,7 +36,7 @@ struct LayoutView: View {
                 Divider()
                 Text("Source subtitle layout").font(.headline)
                 LayoutCanvas(store: store, selectedLanguageID: $selectedLanguageID, outputID: id).frame(height: 300)
-                Text("Drag to move; use the corner to resize. Arrow keys move the selected Surtitle by one canvas pixel.")
+                Text("Drag to move beyond the canvas; use the corner to resize. Output clips at the canvas boundary. Arrow keys move one pixel.")
                     .font(.caption).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))], alignment: .leading) {
                     ForEach(store.project.languages) { layer in
@@ -51,10 +51,10 @@ struct LayoutView: View {
                 }
                 if let layerID = selectedLanguageID, let layer = store.layoutLanguage(layerID, outputID: id) {
                     HStack {
-                        coordinate("X", \.x, layer: layer, outputID: id, range: 0...store.canvas(for: id).width)
-                        coordinate("Y", \.y, layer: layer, outputID: id, range: 0...store.canvas(for: id).height)
-                        coordinate("Width", \.width, layer: layer, outputID: id, range: 1...store.canvas(for: id).width)
-                        coordinate("Height", \.height, layer: layer, outputID: id, range: 1...store.canvas(for: id).height)
+                        coordinate("X", \.x, layer: layer, outputID: id, range: -32768...32768)
+                        coordinate("Y", \.y, layer: layer, outputID: id, range: -32768...32768)
+                        coordinate("Width", \.width, layer: layer, outputID: id, range: 1...32768)
+                        coordinate("Height", \.height, layer: layer, outputID: id, range: 1...32768)
                     }
                     HStack {
                         rotation("Rotate X", \.x, layer: layer, outputID: id)
@@ -103,11 +103,14 @@ struct LayoutView: View {
                 }
             }
         }
-        .onChange(of: store.sessionID) { _, _ in selectedOutputID = nil; selectedLanguageID = nil }
-        .onChange(of: selectedOutputID) { _, id in store.layoutOutputID = id }
-        .onChange(of: selectedLanguageID) { _, id in store.selectedSurtitleID = id }
-        .onAppear { store.layoutOutputID = selectedOutputID; store.selectedSurtitleID = selectedLanguageID }
-        .onDisappear { store.layoutOutputID = nil }
+        .onChange(of: store.sessionID) { _ in selectedOutputID = nil; selectedLanguageID = nil }
+        .onChange(of: selectedOutputID) { id in store.layoutOutputID = id }
+        .onChange(of: selectedLanguageID) { id in store.selectedSurtitleID = id }
+        .onAppear {
+            if store.layoutOutputID != selectedOutputID { store.layoutOutputID = selectedOutputID }
+            if store.selectedSurtitleID != selectedLanguageID { store.selectedSurtitleID = selectedLanguageID }
+        }
+        .onDisappear { if store.layoutOutputID != nil { store.layoutOutputID = nil }; store.endHistoryGroup() }
         .alert("Delete this output layout?", isPresented: Binding(get: { pendingDeleteOutputID != nil }, set: { if !$0 { pendingDeleteOutputID = nil } })) {
             Button("Cancel", role: .cancel) { pendingDeleteOutputID = nil }
             Button("Delete Output", role: .destructive) {

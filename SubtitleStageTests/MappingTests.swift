@@ -45,7 +45,7 @@ final class MappingTests: XCTestCase {
         json["outputs"] = outputs
         let loaded = try ProjectCodec.decode(JSONSerialization.data(withJSONObject: json))
         XCTAssertEqual(loaded, project)
-        XCTAssertEqual(loaded.projectFormatVersion, 11)
+        XCTAssertEqual(loaded.projectFormatVersion, 12)
         XCTAssertEqual(loaded.outputs[0].scaleMode, .fit)
         XCTAssertNil(loaded.outputs[0].resolution)
         XCTAssertEqual(loaded.cues[0].id, project.cues[0].id)

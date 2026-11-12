@@ -2,17 +2,17 @@
 
 ## 文件定位與目前實作（2026-10-21）
 
-本文件描述產品目標；未標示已實作的欄位或能力，不應解讀為目前都有提供。已發布版本為 App v0.5.2（build 12），本機開發版本為 v0.5.2，專案格式為 11。已完成範圍及下一個開發增量以 ROADMAP.md「目前狀態與下一版」為準；操作以 README.md、OSC.md 為準；最新驗證以 V0.5_VERIFICATION.md 為準，先前人工驗收見 SURTITLE_WORKFLOW_VERIFICATION.md。V0.1_VERIFICATION.md、LAYOUT_VERIFICATION.md 是歷史紀錄。
+本文件描述產品目標；未標示已實作的欄位或能力，不應解讀為目前都有提供。發布版本為 App v0.5.4（build 16，最低部署 macOS 13），專案格式為 12。已完成範圍及下一個開發增量以 ROADMAP.md「目前狀態與下一版」為準；操作以 README.md、OSC.md 為準；最新驗證以 V0.5_VERIFICATION.md 為準，先前人工驗收見 SURTITLE_WORKFLOW_VERIFICATION.md。V0.1_VERIFICATION.md、LAYOUT_VERIFICATION.md 是歷史紀錄。
 
 目前行為約定：
 
 - 選取不等於播放；編輯目前 Live Cue 的文字／格式，以及修改 Layout，會立即更新 Live。此為使用者要求的現行工作流，不能在下一版無意改回凍結快照。
 - Blackout 保留 Live Cue；若黑場期間有編輯或明確播放操作，Restore 顯示更新後的 Live 內容。
-- Start Output 會先播放當下選取 Cue。有輸出且未編輯文字時，Escape 停止所有輸出並保留 Live／黑場狀態；無輸出時 Escape 為 Blackout。文字編輯與 IME 優先。
+- v0.5.4：Start Output 會先播放當下選取 Cue。預設 Show Controls 取得焦點時 Space 為 GO／Next、Esc 為 Stop Output，可自訂其他播放熱鍵；文字編輯與 IME 優先。輸出視窗保留 Esc 停止輸出，雙擊輸出畫面也可停止輸出並保留 Live／黑場狀態。
 - 多 Surtitle／多 Output 已有實作，但正式 Scene／逐 Cue Layer 幾何及可見性狀態、獨立 Layer 推進未實作。
 - Canvas 可自訂尺寸與 Presets；v0.3 已加入 Output signal resolution、Region source crop／destination、Fit／Fill／Stretch／1:1 Pixel。字幕 Layout 是來源內容配置，Region Mapper 是輸出訊號配置。UI 本版只建立／調整 Primary Canvas，資料與渲染仍支援 Canvas collection。
 - Cue Fade 是依序淡出、切換、淡入，尚無新舊內容交疊的 Dissolve。
-- v0.2.3 已接入 Cue Details（名稱／備註／displayNumber）、Duplicate Cue、批次勾選刪除與編號預覽；批次勾選是暫態編輯狀態，與 selectedCue／liveCue 分離。Split／Merge 尚未實作。
+- v0.5.4 依使用者要求移除 Cue Details 畫面；保留既有檔案 metadata。Duplicate Cue、批次勾選刪除與編號預覽維持；批次勾選是暫態編輯狀態，與 selectedCue／liveCue 分離。Split／Merge 尚未實作。
 
 ## 1. 產品定位
 

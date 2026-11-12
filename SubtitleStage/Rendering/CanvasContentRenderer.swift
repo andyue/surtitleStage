@@ -68,19 +68,30 @@ enum CanvasContentRenderer {
         context.concatenate(CGAffineTransform(a: a, b: b, c: c, d: d, tx: 0, ty: 0))
         context.translateBy(x: -center.x, y: -center.y)
         context.clip(to: CGRect(x: frame.x, y: frame.y, width: frame.width, height: frame.height))
+        let text = attributedText(value, style: style)
+        let measured = text.boundingRect(with: NSSize(width: frame.width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading])
+        text.draw(with: NSRect(x: frame.x, y: frame.y + max(0, (frame.height - measured.height) / 2), width: frame.width, height: max(frame.height, measured.height)), options: [.usesLineFragmentOrigin, .usesFontLeading])
+    }
+    static func attributedText(_ value: String, style: TextStyle) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
         switch style.alignment {
         case .left: paragraph.alignment = .left
         case .center: paragraph.alignment = .center
         case .right: paragraph.alignment = .right
         }
-        paragraph.lineSpacing = style.lineSpacing
+        paragraph.lineSpacing = max(0, style.lineSpacing)
         paragraph.lineBreakMode = .byWordWrapping
         let font = NSFont(name: style.fontName, size: style.fontSize) ?? NSFont.systemFont(ofSize: style.fontSize)
         let boldFont = style.bold ? NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask) : font
         let italicFont = style.italic ? NSFontManager.shared.convert(boldFont, toHaveTrait: .italicFontMask) : boldFont
+        if style.lineSpacing < 0 {
+            let natural = NSLayoutManager().defaultLineHeight(for: italicFont)
+            let tightened = max(1, natural + style.lineSpacing)
+            paragraph.minimumLineHeight = tightened
+            paragraph.maximumLineHeight = tightened
+        }
         let syntheticItalic = style.italic && !NSFontManager.shared.traits(of: italicFont).contains(.italicFontMask)
-        let text = NSAttributedString(string: value, attributes: [
+        return NSAttributedString(string: value, attributes: [
             .font: italicFont,
             .obliqueness: syntheticItalic ? 0.2 : 0.0,
             .underlineStyle: style.underline ? NSUnderlineStyle.single.rawValue : 0,
@@ -89,7 +100,12 @@ enum CanvasContentRenderer {
             .paragraphStyle: paragraph,
             .kern: style.characterSpacing
         ])
-        let measured = text.boundingRect(with: NSSize(width: frame.width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading])
-        text.draw(with: NSRect(x: frame.x, y: frame.y + max(0, (frame.height - measured.height) / 2), width: frame.width, height: max(frame.height, measured.height)), options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
+    static func selectionFrame(text: String, style: TextStyle, frame: PixelFrame) -> PixelFrame {
+        let measured = attributedText(text.isEmpty ? " " : text, style: style)
+            .boundingRect(with: NSSize(width: frame.width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading])
+        let height = min(frame.height, max(1, ceil(measured.height)))
+        return PixelFrame(x: frame.x, y: frame.y + (frame.height - height) / 2, width: frame.width, height: height)
+    }
+
 }

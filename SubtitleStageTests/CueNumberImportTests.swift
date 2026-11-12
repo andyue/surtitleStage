@@ -88,7 +88,7 @@ final class CueNumberImportTests: XCTestCase {
         let request = DocumentImportRequest(url: URL(fileURLWithPath: "/tmp/show.xlsx"))
         XCTAssertEqual(DocumentImportSession(request: request, store: store).matchMode, .source)
         store.change { $0 = project }
-        XCTAssertEqual(DocumentImportSession(request: request, store: store).matchMode, .cueNumber)
+        XCTAssertEqual(DocumentImportSession(request: request, store: store).matchMode, .source)
         XCTAssertEqual(DocumentImportSession(request: DocumentImportRequest(url: request.url, source: source), store: store).matchMode, .source)
         let diff = try plan(project, source, [row("1", layer: english, text: "One"), row("2", layer: english, text: "Two")])
         let keys = Set(diff.items.map(\.key))
@@ -127,6 +127,7 @@ extension CueNumberImportTests {
         store.change { $0 = project }
         let session = DocumentImportSession(request: DocumentImportRequest(url: URL(fileURLWithPath: "/tmp/show.xlsx")), store: store)
         let id = try session.addSurtitle(name: "日本語", column: 3)
+        session.matchMode = .cueNumber
         session.rows = [row("1", layer: id, text: "日本語の台詞")]
         session.review()
         for _ in 0..<500 where session.busy { try await Task.sleep(for: .milliseconds(10)) }
@@ -152,6 +153,7 @@ extension CueNumberImportTests {
         let store = ProjectStore(); store.change { $0 = project }
         let session = DocumentImportSession(request: DocumentImportRequest(url: URL(fileURLWithPath: "/tmp/show.xlsx")), store: store)
         let id = try session.addSurtitle(name: "New", column: 4)
+        session.matchMode = .cueNumber
         session.rows = [row("1", layer: id, text: "new")]
         session.review()
         for _ in 0..<500 where session.busy { try await Task.sleep(for: .milliseconds(10)) }

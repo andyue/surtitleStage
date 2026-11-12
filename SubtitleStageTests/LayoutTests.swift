@@ -31,7 +31,7 @@ final class LayoutTests: XCTestCase {
         cues[0].removeValue(forKey: "translations")
         json["cues"] = cues
         let migrated = try ProjectCodec.decode(JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(migrated.projectFormatVersion, 11)
+        XCTAssertEqual(migrated.projectFormatVersion, 12)
         XCTAssertEqual(migrated.cues, original.cues)
         XCTAssertEqual(migrated.outputs, original.outputs)
         XCTAssertEqual(migrated.canvases, original.canvases)
@@ -69,7 +69,7 @@ final class LayoutTests: XCTestCase {
         project.languages[1].isVisible = false
         XCTAssertEqual(LiveFrame(cue: project.cues[1], project: project).layers(for: nil).count, 1)
     }
-    func testDragUsesCanvasPixelsAndClampsBounds() throws {
+    func testDragUsesCanvasPixelsAndAllowsOverflow() throws {
         let canvas = CanvasDefinition(width: 5760, height: 1080)
         let transform = try XCTUnwrap(CanvasTransform(canvas: canvas, viewportWidth: 960, viewportHeight: 400))
         let rect = PixelFrame(x: 100, y: 100, width: 1000, height: 200)
@@ -77,10 +77,10 @@ final class LayoutTests: XCTestCase {
         XCTAssertEqual(moved.x, 400, accuracy: 0.0001)
         XCTAssertEqual(moved.y, 220, accuracy: 0.0001)
         let clamped = rect.adjusted(dx: 10000, dy: -10000, resizing: false, canvas: canvas)
-        XCTAssertEqual(clamped.x, 4760)
-        XCTAssertEqual(clamped.y, 0)
+        XCTAssertEqual(clamped.x, 10100)
+        XCTAssertEqual(clamped.y, -9900)
         let resized = rect.adjusted(dx: 10000, dy: -10000, resizing: true, canvas: canvas)
-        XCTAssertEqual(resized.width, 5660)
+        XCTAssertEqual(resized.width, 11000)
         XCTAssertEqual(resized.height, 1)
     }
     func testInvalidRoutesAndGeometryRejected() throws {
@@ -109,8 +109,8 @@ final class LayoutTests: XCTestCase {
         store.go()
         store.setLanguageFrame(languageID, frame: PixelFrame(x: 99999, y: -10, width: 400, height: 100))
         let layer = store.project.languages[1]
-        XCTAssertEqual(layer.frame.x, store.project.canvas.width - 400)
-        XCTAssertEqual(layer.frame.y, 0)
+        XCTAssertEqual(layer.frame.x, 32768)
+        XCTAssertEqual(layer.frame.y, -10)
         store.removeOutput(a)
         XCTAssertFalse(store.project.languages[1].isVisible)
         XCTAssertEqual(store.playback.liveFrame?.languages.first(where: { $0.id == languageID })?.frame, layer.frame)
@@ -145,7 +145,7 @@ final class LayoutTests: XCTestCase {
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(project)) as? [String: Any])
         json["projectFormatVersion"] = 2
         let loaded = try ProjectCodec.decode(JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(loaded.projectFormatVersion, 11)
+        XCTAssertEqual(loaded.projectFormatVersion, 12)
         XCTAssertEqual(loaded.languages, project.languages)
     }
 
@@ -158,7 +158,7 @@ final class LayoutTests: XCTestCase {
         languages[0].removeValue(forKey: "rotation")
         json["languages"] = languages
         let loaded = try ProjectCodec.decode(JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(loaded.projectFormatVersion, 11)
+        XCTAssertEqual(loaded.projectFormatVersion, 12)
         XCTAssertEqual(loaded.transitions, TransitionSettings())
         XCTAssertEqual(loaded.languages[0].rotation, Rotation3D())
     }
@@ -175,7 +175,7 @@ final class LayoutTests: XCTestCase {
         XCTAssertNil(store.project.outputs[3].displayID)
         XCTAssertNotNil(store.errorMessage)
         let decoded = try ProjectCodec.decode(ProjectCodec.encode(store.project))
-        XCTAssertEqual(decoded.projectFormatVersion, 11)
+        XCTAssertEqual(decoded.projectFormatVersion, 12)
         XCTAssertEqual(decoded.outputs, store.project.outputs)
     }
 

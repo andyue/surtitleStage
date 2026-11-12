@@ -35,6 +35,7 @@ extension ProjectStore {
         PixelFrame(x: frame.x * sx, y: frame.y * sy, width: max(1, frame.width * sx), height: max(1, frame.height * sy))
     }
     func setText(_ text: String, cueID: UUID, languageID: UUID) {
+        guard let cue = project.cues.first(where: { $0.id == cueID }), project.text(for: cue, languageID: languageID) != text else { return }
         change(historyGroup: "cue-text.\(cueID.uuidString).\(languageID.uuidString)") {
             $0.setText(text, cueID: cueID, languageID: languageID)
         }
@@ -79,12 +80,12 @@ extension ProjectStore {
         change { edit(&$0.languages[index]) }
     }
     func setLanguageFrame(_ id: UUID, frame: PixelFrame, outputID: UUID? = nil) {
-        let canvas = canvas(for: outputID)
         guard [frame.x, frame.y, frame.width, frame.height].allSatisfy(\.isFinite) else { return }
-        let width = min(canvas.width, max(1, frame.width))
-        let height = min(canvas.height, max(1, frame.height))
-        let bounded = PixelFrame(x: min(max(0, frame.x), canvas.width - width), y: min(max(0, frame.y), canvas.height - height), width: width, height: height)
-        editLayoutLanguage(id, outputID: outputID) { $0.frame = bounded }
+        let width = min(32768, max(1, frame.width))
+        let height = min(32768, max(1, frame.height))
+        let bounded = PixelFrame(x: min(32768, max(-32768, frame.x)), y: min(32768, max(-32768, frame.y)), width: width, height: height)
+        guard layoutLanguage(id, outputID: outputID)?.frame != bounded else { return }
+        editLayoutLanguage(id, outputID: outputID, historyGroup: "layout-frame.\(id).\(String(describing: outputID))") { $0.frame = bounded }
     }
     func nudgeSelectedLayout(dx: Double, dy: Double) {
         guard let outputID = layoutOutputID, let languageID = selectedSurtitleID,
@@ -97,11 +98,11 @@ extension ProjectStore {
         guard let language = project.languages.first(where: { $0.id == id }) else { return nil }
         return LiveFrame(cue: selectedCue ?? Cue(), project: project).resolvedLanguage(language, for: outputID)
     }
-    func editLayoutLanguage(_ id: UUID, outputID: UUID?, _ edit: (inout LanguageLayer) -> Void) {
+    func editLayoutLanguage(_ id: UUID, outputID: UUID?, historyGroup: String? = nil, _ edit: (inout LanguageLayer) -> Void) {
         guard let outputID else { editLanguage(id, edit); return }
         guard let index = project.outputs.firstIndex(where: { $0.id == outputID }), var language = layoutLanguage(id, outputID: outputID) else { return }
         edit(&language)
-        change { $0.outputs[index].languageLayouts[id] = LanguagePlacement(language) }
+        change(historyGroup: historyGroup) { $0.outputs[index].languageLayouts[id] = LanguagePlacement(language) }
     }
     func ensureOutputLayout(_ id: UUID) {
         guard let index = project.outputs.firstIndex(where: { $0.id == id }) else { return }

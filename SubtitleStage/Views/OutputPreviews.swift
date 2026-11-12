@@ -8,7 +8,7 @@ struct OutputPreviews: View {
     var select: ((UUID) -> Void)? = nil
     var body: some View {
         if store.project.outputs.isEmpty {
-            ContentUnavailableView("No outputs configured", systemImage: "display.2", description: Text("Add output slots now and assign displays later."))
+            EmptyStateView("No outputs configured", systemImage: "display.2", description: "Add output slots now and assign displays later.")
         } else {
             // Playback fills the operator column; the layout overview keeps thumbnails.
             LazyVGrid(columns: live

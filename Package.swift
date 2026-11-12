@@ -12,7 +12,7 @@ let syphonLink: [LinkerSetting] = [
 
 let package = Package(
     name: "SubtitleStage",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v13)],
     products: [.executable(name: "SubtitleStage", targets: ["SubtitleStage"])],
     targets: [
         .target(name: "NDIBridge", path: "NDIBridge", publicHeadersPath: "include"),

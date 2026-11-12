@@ -132,7 +132,7 @@ final class DocumentImportTests: XCTestCase {
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         json["projectFormatVersion"] = 8; json.removeValue(forKey: "importSources")
         let migrated = try JSONDecoder().decode(Project.self, from: JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(migrated.projectFormatVersion, 11)
+        XCTAssertEqual(migrated.projectFormatVersion, 12)
         XCTAssertTrue(migrated.importSources.isEmpty); XCTAssertNil(migrated.cues[0].importOrigin)
         try migrated.validate()
     }

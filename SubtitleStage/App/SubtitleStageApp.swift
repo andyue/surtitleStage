@@ -14,6 +14,15 @@ struct SubtitleStageApp: App {
                 CommandGroup(replacing: .newItem) {
                     Button("New Project") { Task { await store.newProject(); openWindow(id: "operator") } }.disabled(store.isBusy).keyboardShortcut("n")
                     Button("Open…") { Task { await store.openProject(); openWindow(id: "operator") } }.disabled(store.isBusy).keyboardShortcut("o")
+                    Menu("Open Recent") {
+                        if store.recentProjectURLs.isEmpty { Text("No Recent Projects") }
+                        ForEach(store.recentProjectURLs, id: \.self) { url in
+                            Button(url.lastPathComponent) { Task { await store.openRecentProject(url); openWindow(id: "operator") } }
+                                .help(url.path)
+                        }
+                        Divider()
+                        Button("Clear Menu") { store.clearRecentProjects() }.disabled(store.recentProjectURLs.isEmpty)
+                    }.disabled(store.isBusy)
                 }
                 CommandGroup(replacing: .saveItem) {
                     Button("Save") { Task { await store.save() } }.disabled(store.isBusy).keyboardShortcut("s")

@@ -85,7 +85,7 @@ public enum GlypheoImporter {
         }
         var document = ParsedDocument(kind: "glypheo")
         document.sheets = [SpreadsheetSheet(name: "Glypheo Cues", rows: rows)]
-        document.warnings = ["Imports all groups in document order as plain text, preserving line breaks and track columns. Cue numbers are sequential. Map Group / Status to Notes to retain group labels.",
+        document.warnings = ["Imports all groups in document order as plain text, preserving line breaks and track columns. Cue numbers are sequential. Group / status metadata is not imported by the default workflow.",
                              "Glypheo fonts, per-character styles, transitions, hierarchy, panels and output mapping are not imported. Review the target layout before playback.",
                              "Blank cues are ignored by default in the preview; enable them explicitly if required."]
         if disabled > 0 { document.warnings.append("\(disabled) disabled Glypheo cues are ignored by default and marked in Group / Status. Enable them in preview only if they should play.") }

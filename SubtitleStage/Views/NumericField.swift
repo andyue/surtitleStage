@@ -18,7 +18,10 @@ struct NumericField: NSViewRepresentable {
     }
     func updateNSView(_ field: ScrollNumericTextField, context: Context) {
         context.coordinator.value = $value; context.coordinator.range = range; context.coordinator.step = step
-        if field.currentEditor() == nil { field.stringValue = context.coordinator.format(value) }
+        if field.currentEditor() == nil {
+            let formatted = context.coordinator.format(value)
+            if field.stringValue != formatted { field.stringValue = formatted }
+        }
         field.isEnabled = context.environment.isEnabled
     }
     static func dismantleNSView(_ field: ScrollNumericTextField, coordinator: Coordinator) {

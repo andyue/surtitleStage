@@ -11,11 +11,11 @@ public struct PixelFrame: Codable, Equatable, Sendable {
     public func adjusted(dx: Double, dy: Double, resizing: Bool, canvas: CanvasDefinition) -> PixelFrame {
         var frame = self
         if resizing {
-            frame.width = min(canvas.width - x, max(1, width + dx))
-            frame.height = min(canvas.height - y, max(1, height + dy))
+            frame.width = min(32768, max(1, width + dx))
+            frame.height = min(32768, max(1, height + dy))
         } else {
-            frame.x = min(max(0, x + dx), max(0, canvas.width - width))
-            frame.y = min(max(0, y + dy), max(0, canvas.height - height))
+            frame.x = min(32768, max(-32768, x + dx))
+            frame.y = min(32768, max(-32768, y + dy))
         }
         return frame
     }
@@ -44,7 +44,7 @@ public struct LanguageLayer: Codable, Equatable, Identifiable, Sendable {
         self.name = name; self.frame = frame; self.usesCueStyle = usesCueStyle
     }
     public static func primary(canvas: CanvasDefinition) -> LanguageLayer {
-        LanguageLayer(name: "Surtitle 1", frame: PixelFrame(x: canvas.width * 0.05, y: 0, width: canvas.width * 0.9, height: canvas.height), usesCueStyle: true)
+        LanguageLayer(name: "Surtitle 1", frame: PixelFrame(x: canvas.width * 0.05, y: canvas.height * 0.65, width: canvas.width * 0.9, height: max(1, canvas.height * 0.2)), usesCueStyle: true)
     }
 }
 

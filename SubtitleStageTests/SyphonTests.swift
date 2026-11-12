@@ -48,7 +48,7 @@ final class SyphonTests: XCTestCase {
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(project)) as? [String: Any])
         json["projectFormatVersion"] = 9
         let migrated = try JSONDecoder().decode(Project.self, from: JSONSerialization.data(withJSONObject: json))
-        XCTAssertEqual(migrated.projectFormatVersion, 11)
+        XCTAssertEqual(migrated.projectFormatVersion, 12)
         XCTAssertFalse(migrated.outputs[0].syphon.isEnabled)
         XCTAssertEqual(migrated.cues, project.cues)
         XCTAssertEqual(migrated.outputs[0].id, project.outputs[0].id)
@@ -181,6 +181,12 @@ extension SyphonTests {
         for _ in 0..<500 where manager.isStarting { try await Task.sleep(for: .milliseconds(10)) }
         XCTAssertEqual(manager.activeOutputIDs, Set(project.outputs.map(\.id)))
         XCTAssertNil(store.playback.liveCueID)
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(manager.configurationValidationCount, 1)
+        store.setLanguageFrame(project.languages[0].id, frame: PixelFrame(x: -5, y: 10, width: 200, height: 60), outputID: project.outputs[0].id)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(manager.activeOutputIDs.isEmpty)
+        XCTAssertEqual(manager.configurationValidationCount, 2)
         store.editOutputMapping(project.outputs[0].id) { $0.syphon.framesPerSecond = 60 }
         for _ in 0..<500 where !manager.activeOutputIDs.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
         XCTAssertTrue(manager.activeOutputIDs.isEmpty)

@@ -119,11 +119,11 @@ struct OutputMappingView: View {
                 }
             } message: { Text("Deleting the last region restores full-canvas mapping. You can Undo this change.") }
             .onAppear { signalWidth = String(Int(size.width)); signalHeight = String(Int(size.height)); selectedRegionID = config.regions.first?.id }
-            .onChange(of: config.regions.map(\.id)) { _, ids in
+            .onChange(of: config.regions.map(\.id)) { ids in
                 if !ids.contains(where: { $0 == selectedRegionID }) { selectedRegionID = ids.first }
             }
-            .onChange(of: config.resolution) { _, _ in signalWidth = String(Int(size.width)); signalHeight = String(Int(size.height)) }
-            .onChange(of: outputID) { _, _ in selectedRegionID = nil; signalWidth = String(Int(size.width)); signalHeight = String(Int(size.height)) }
+            .onChange(of: config.resolution) { _ in signalWidth = String(Int(size.width)); signalHeight = String(Int(size.height)) }
+            .onChange(of: outputID) { _ in selectedRegionID = nil; signalWidth = String(Int(size.width)); signalHeight = String(Int(size.height)) }
             .onDisappear { store.endHistoryGroup() }
         }
     }
@@ -228,7 +228,7 @@ private struct RegionFrameFields: View {
             field("X", value: $x); field("Y", value: $y)
             field("Width", value: $width); field("Height", value: $height)
             Button("Apply") { if let candidate { apply(candidate) } }.disabled(candidate == nil)
-        }.onAppear(perform: reset).onChange(of: frame) { _, _ in reset() }
+        }.onAppear(perform: reset).onChange(of: frame) { _ in reset() }
     }
     private func field(_ title: String, value: Binding<String>) -> some View {
         VStack(alignment: .leading) {

@@ -5,11 +5,11 @@ export CLANG_MODULE_CACHE_PATH="$PWD/.build/ModuleCache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PWD/.build/ModuleCache"
 build_arch() {
     local arch="$1"
-    swift build --disable-sandbox --cache-path ".build/cache-$arch" --config-path ".build/config-$arch" --security-path ".build/security-$arch" --manifest-cache local --configuration release --triple "$arch-apple-macosx14.0"
+    swift build --disable-sandbox --cache-path ".build/cache-$arch" --config-path ".build/config-$arch" --security-path ".build/security-$arch" --manifest-cache local --configuration release --triple "$arch-apple-macosx13.0"
 }
 bin_path() {
     local arch="$1"
-    swift build --disable-sandbox --cache-path ".build/cache-$arch" --config-path ".build/config-$arch" --security-path ".build/security-$arch" --manifest-cache local --configuration release --triple "$arch-apple-macosx14.0" --show-bin-path
+    swift build --disable-sandbox --cache-path ".build/cache-$arch" --config-path ".build/config-$arch" --security-path ".build/security-$arch" --manifest-cache local --configuration release --triple "$arch-apple-macosx13.0" --show-bin-path
 }
 build_arch x86_64
 build_arch arm64

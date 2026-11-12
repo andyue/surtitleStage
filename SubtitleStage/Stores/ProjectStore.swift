@@ -5,6 +5,11 @@ import SubtitleCore
 
 @MainActor
 final class ProjectStore: ObservableObject {
+    @Published private(set) var recentProjectURLs: [URL]
+    private let recentDefaults: UserDefaults
+    let hotkeys = HotkeySettings()
+    @Published var showControlsFocused = false
+
     private struct HistoryEntry {
         var project: Project
         var selectedCueID: UUID?
@@ -34,7 +39,9 @@ final class ProjectStore: ObservableObject {
 
     private enum NavigationDirection { case next, previous }
 
-    init() {
+    init(recentDefaults: UserDefaults = .standard) {
+        self.recentDefaults = recentDefaults
+        recentProjectURLs = (recentDefaults.stringArray(forKey: "SubtitleStage.RecentProjects") ?? []).prefix(10).map { URL(fileURLWithPath: $0) }
         let initial = Project()
         project = initial
         savedProject = initial
@@ -277,12 +284,20 @@ final class ProjectStore: ObservableObject {
         panel.allowedContentTypes = [UTType(exportedAs: "local.SubtitleStage.project", conformingTo: .json), .json]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        await loadProject(from: url)
+    }
+    func openRecentProject(_ url: URL) async {
+        guard await mayDiscard() else { return }
+        await loadProject(from: url)
+    }
+    private func loadProject(from url: URL) async {
         isBusy = true
         defer { isBusy = false }
         do {
             let loaded = try await Task.detached { try ProjectCodec.load(from: url) }.value
             replace(with: loaded, url: url)
-        } catch { errorMessage = "Project cannot be opened. \(error.localizedDescription)" }
+            rememberRecentProject(url)
+        } catch { errorMessage = "Project cannot be opened: \(url.lastPathComponent). \(error.localizedDescription)" }
     }
     @discardableResult
     func save(as saveAs: Bool = false) async -> Bool {
@@ -303,12 +318,24 @@ final class ProjectStore: ObservableObject {
         do {
             try await Task.detached { try ProjectCodec.save(snapshot, to: target) }.value
             fileURL = target
+            rememberRecentProject(target)
             if revision == savedRevision { savedProject = snapshot; isDirty = false }
             return !isDirty
         } catch {
             errorMessage = "Project cannot be saved. \(error.localizedDescription)"
             return false
         }
+    }
+    func rememberRecentProject(_ url: URL) {
+        let normalized = url.standardizedFileURL
+        recentProjectURLs.removeAll { $0.standardizedFileURL == normalized }
+        recentProjectURLs.insert(normalized, at: 0)
+        recentProjectURLs = Array(recentProjectURLs.prefix(10))
+        recentDefaults.set(recentProjectURLs.map(\.path), forKey: "SubtitleStage.RecentProjects")
+    }
+    func clearRecentProjects() {
+        recentProjectURLs = []
+        recentDefaults.removeObject(forKey: "SubtitleStage.RecentProjects")
     }
     private func replace(with project: Project, url: URL?) {
         cancelCueTransition()

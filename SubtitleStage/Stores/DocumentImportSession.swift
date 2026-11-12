@@ -10,6 +10,8 @@ struct DocumentImportRequest: Identifiable {
 
 @MainActor
 final class DocumentImportSession: ObservableObject {
+    @Published var includeSkipped = false
+    private var importedPrimaryName: String?
     @Published var draftLanguages: [LanguageLayer] = []
     @Published var matchMode: ImportMatchMode
     @Published var hasPreview = false
@@ -27,15 +29,24 @@ final class DocumentImportSession: ObservableObject {
 
     init(request: DocumentImportRequest, store: ProjectStore) {
         self.request = request; baseline = store.project; sessionID = store.sessionID
-        matchMode = request.source == nil && !store.project.cues.isEmpty ? .cueNumber : .source
+        matchMode = .source
         configuration = request.source?.configuration ?? ImportConfiguration(defaultLayerID: store.project.languages[0].id)
     }
-    var languages: [LanguageLayer] { baseline.languages + draftLanguages }
+    var languages: [LanguageLayer] {
+        var result = baseline.languages + draftLanguages
+        if let importedPrimaryName { result[0].name = importedPrimaryName }
+        return result
+    }
     var importProject: Project {
         var project = baseline
-        project.languages += draftLanguages
+        let used = Set(configuration.columns.values.compactMap { role -> UUID? in
+            if case .text(let id) = role { return id }; return nil
+        })
+        let additions = draftLanguages.filter { used.contains($0.id) }
+        project.languages += additions
+        if let importedPrimaryName { project.languages[0].name = importedPrimaryName }
         for i in project.outputs.indices {
-            for language in draftLanguages { project.outputs[i].languageLayouts[language.id] = LanguagePlacement(language) }
+            for language in additions { project.outputs[i].languageLayouts[language.id] = LanguagePlacement(language) }
         }
         return project
     }
@@ -66,16 +77,87 @@ final class DocumentImportSession: ObservableObject {
             let document = try await importBackground { try OfficeDocumentImporter.parse(url: url, defaultLayerID: layer) }
             self.parsed = document
             self.rows = document.rows
-            self.hasPreview = document.kind == "docx"
             if self.request.source == nil, let sheet = document.sheets.first {
                 self.configuration.sheet = sheet.name
-                self.configuration.headerRow = sheet.suggestedHeader
-                if document.kind == "glypheo" {
-                    self.configuration.headerRow = 1
-                    self.configuration.columns = [0: .key, 1: .number, 2: .note]
-                }
+                self.configuration.headerRow = document.kind == "glypheo" ? 1 : sheet.suggestedHeader
+                self.suggestColumns()
+            }
+            if document.kind == "glypheo" { self.configuration.columns[2] = .ignore }
+            try await self.buildSinglePagePreview()
+
+        }
+    }
+    var selectedSheet: SpreadsheetSheet? { parsed?.sheets.first { $0.name == configuration.sheet } }
+    var textColumns: [Int] {
+        guard let sheet = selectedSheet else { return [] }
+        return (0..<sheet.columnCount).filter { column in
+            if parsed?.kind == "glypheo" { return column >= 3 }
+            let name = columnTitle(column).lowercased().replacingOccurrences(of: " ", with: "")
+            if ["notes", "note", "備註", "group/status", "speaker", "character", "角色"].contains(name) { return false }
+            switch configuration.columns[column] {
+            case .key, .number, .speaker, .note, .target: return false
+            default: return true
             }
         }
+    }
+    func columnTitle(_ column: Int) -> String {
+        selectedSheet?.rows.first { $0.number == configuration.headerRow }?.cells[column] ?? "Column \(column + 1)"
+    }
+    func suggestColumns() {
+        guard let sheet = selectedSheet else { return }
+        draftLanguages = []; importedPrimaryName = nil; configuration.columns = [:]
+        var used = Set<UUID>()
+        for column in 0..<sheet.columnCount {
+            if parsed?.kind == "glypheo", column < 3 {
+                configuration.columns[column] = column == 0 ? .key : column == 1 ? .number : .ignore
+                continue
+            }
+            let title = columnTitle(column).replacingOccurrences(of: "^Text [0-9]+: ", with: "", options: .regularExpression)
+            let normalized = title.lowercased().replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "_", with: "")
+            if ["sourceid", "id", "stableid", "來源id"].contains(normalized), !configuration.columns.values.contains(.key) { configuration.columns[column] = .key; continue }
+            if ["cuenumber", "cue", "number", "編號"].contains(normalized), !configuration.columns.values.contains(.number) { configuration.columns[column] = .number; continue }
+            if ["notes", "note", "備註", "group/status", "speaker", "character", "角色"].contains(normalized) { configuration.columns[column] = .ignore; continue }
+            if let existing = languages.first(where: { $0.name == title && !used.contains($0.id) }) {
+                configuration.columns[column] = .text(existing.id); used.insert(existing.id)
+            } else if baseline.cues.isEmpty, baseline.languages.count == 1, used.isEmpty {
+                let id = baseline.languages[0].id
+                importedPrimaryName = title
+                configuration.columns[column] = .text(id); used.insert(id)
+            } else {
+                let canvas = baseline.canvas
+                var name = title; var suffix = 2
+                while languages.contains(where: { $0.name == name }) { name = title + " \(suffix)"; suffix += 1 }
+                let layer = LanguageLayer(name: name, frame: PixelFrame(x: canvas.width * 0.05, y: canvas.height * 0.65, width: max(1, canvas.width * 0.9), height: max(1, canvas.height * 0.2)))
+                draftLanguages.append(layer); used.insert(layer.id); configuration.columns[column] = .text(layer.id)
+            }
+        }
+    }
+    func updatePreview() {
+        plan = nil; selectedKeys = []
+        perform { try await self.buildSinglePagePreview() }
+    }
+    private func buildSinglePagePreview() async throws {
+        let config = configuration, languages = languages, sheet = selectedSheet
+        let documentRows = parsed?.rows ?? [], includeSkipped = includeSkipped
+        let mapped = try await importBackground {
+            var rows = try sheet.map { try ImportMapping.rows(sheet: $0, configuration: config, languages: languages) } ?? documentRows
+            if sheet == nil {
+                for i in rows.indices where rows[i].content.texts.count == 1 {
+                    rows[i].content.texts = [config.defaultLayerID: rows[i].content.texts.values.first ?? ""]
+                    if let traits = rows[i].content.traits.values.first { rows[i].content.traits = [config.defaultLayerID: traits] }
+                }
+            }
+            if includeSkipped { for i in rows.indices { rows[i].ignored = false } }
+            return rows
+        }
+        let project = importProject, mode = matchMode, reimport = request.source != nil
+        var source = request.source ?? ImportSource(name: request.url.lastPathComponent, kind: parsed?.kind ?? "", configuration: config, hasStableKeys: false)
+        source.configuration = config
+        source.hasStableKeys = config.columns.values.contains(.key) && ["xlsx", "glypheo"].contains(parsed?.kind ?? "")
+        let prepared = source
+        let result = try await importBackground { try ImportDiff.plan(project: project, source: prepared, rows: mapped, reimport: reimport, matchMode: mode) }
+        rows = mapped; plan = result; hasPreview = true
+        selectedKeys = Set(result.items.filter { ($0.change == .new || $0.change == .modified) && !$0.conflict }.map(\.key))
     }
     func map() {
         guard let sheet = parsed?.sheets.first(where: { $0.name == configuration.sheet }) else { error = "Select a worksheet."; return }

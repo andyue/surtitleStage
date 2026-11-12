@@ -84,18 +84,9 @@ final class CueEditingTests: XCTestCase {
         store.redo(); XCTAssertEqual(store.project.cues[3].displayNumber, "11")
     }
 
-    @MainActor
-    func testDetailsGroupTypingAndPreserveCueContent() async throws {
-        let store = ProjectStore(); store.addCue()
-        let original = store.selectedCue!
-        store.editCueDetail(original.id, key: \.name, value: "場")
-        store.editCueDetail(original.id, key: \.name, value: "場一")
-        store.endHistoryGroup()
-        store.editCueDetail(original.id, key: \.note, value: "繁體／简体 notes")
-        XCTAssertEqual(store.selectedCue?.name, "場一")
-        XCTAssertNil(store.playback.liveCueID)
-        XCTAssertEqual(try ProjectCodec.decode(ProjectCodec.encode(store.project)), store.project)
-        store.undo(); XCTAssertEqual(store.selectedCue?.note, "")
-        store.undo(); XCTAssertEqual(store.selectedCue, original)
+    func testLegacyCueMetadataStillRoundTripsWithoutDetailsUI() throws {
+        var project = Project()
+        project.cues = [Cue(displayNumber: "A1", name: "場一", note: "繁體／简体 notes", text: "字幕")]
+        XCTAssertEqual(try ProjectCodec.decode(ProjectCodec.encode(project)), project)
     }
 }

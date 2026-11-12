@@ -91,10 +91,10 @@ public struct PlaybackState: Equatable, Sendable {
     public mutating func setMasterOpacity(_ value: Double) {
         masterOpacity = min(1, max(0, value))
     }
-    public mutating func toggleBlackout(duration: Double = 0) {
+    public mutating func toggleBlackout(duration: Double = 1) {
         transitionDuration = duration; isBlackout.toggle()
     }
-    public mutating func blackout(duration: Double = 0) {
+    public mutating func blackout(duration: Double = 1) {
         transitionDuration = duration; isBlackout = true
     }
 }

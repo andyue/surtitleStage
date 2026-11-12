@@ -7,7 +7,8 @@ struct OperatorView: View {
     @ObservedObject var osc: OSCController
     @StateObject private var syphon = SyphonOutputManager()
     @StateObject private var ndi = NDIOutputManager()
-    @State private var editWorkspace = "Text Modify"
+    @AppStorage("SubtitleStage.OperatorLayout") private var layout = "2 Right"
+    @StateObject private var controlsWindow = ShowControlsWindow()
     @State private var importSource: String?
     @State private var renumberIDs: Set<UUID>?
     var body: some View {
@@ -17,54 +18,34 @@ struct OperatorView: View {
                     .textFieldStyle(.plain).font(.headline).frame(maxWidth: 300)
                 if store.isDirty { Text("Edited").foregroundStyle(.secondary) }
                 Spacer()
+                Picker("Layout", selection: $layout) {
+                    Text("2 Left").tag("2 Left")
+                    Text("2 Right").tag("2 Right")
+                }.frame(width: 160)
+                Button(controlsWindow.isVisible ? "Dock Show Controls" : "Float Show Controls") {
+                    if controlsWindow.isVisible { controlsWindow.close() }
+                    else { controlsWindow.show(store: store, output: output) }
+                }
                 Text("Canvas \(Int(store.project.canvas.width)) × \(Int(store.project.canvas.height))").foregroundStyle(.secondary)
             }.padding().disabled(store.isBusy)
             HSplitView {
-                VSplitView {
-                    VStack(spacing: 0) {
-                        CueTable(store: store)
-                        cueToolbar
-                    }.frame(minHeight: 300, idealHeight: 520)
-                    VStack(spacing: 10) {
-                        HStack {
-                            Text("Edit").font(.headline)
-                            Spacer()
-                            ViewThatFits(in: .horizontal) {
-                                workspacePicker.pickerStyle(.segmented).fixedSize()
-                                workspacePicker.pickerStyle(.menu)
-                            }.frame(maxWidth: 560)
-                            Spacer()
-                            Text("Canvas \(Int(store.project.canvas.width)) × \(Int(store.project.canvas.height))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        ScrollView {
-                            if editWorkspace == "Layout" { LayoutView(store: store, output: output) }
-                            else if editWorkspace == "Cue Details" { CueDetailsView(store: store) }
-                            else if editWorkspace == "Video Output" { VideoOutputView(store: store, syphon: syphon, ndi: ndi) }
-                            else if editWorkspace == "OSC" { OSCSettingsView(controller: osc, store: store) }
-                            else { TextModifyView(store: store) }
-                        }
-                    }.padding(12).frame(minHeight: 260, idealHeight: 380)
-                }.frame(minWidth: 520, idealWidth: 720).disabled(store.isBusy)
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Playback").font(.headline)
-                        Spacer()
-                        Button("+ Output") { store.addOutput() }
-                            .disabled(!output.activeDisplayIDs.isEmpty)
-                        Text(store.playback.isBlackout ? "BLACKOUT" : store.playback.liveFrame.map { "LIVE · \($0.cue.displayNumber)" } ?? "NO LIVE CUE")
-                            .foregroundStyle(store.playback.isBlackout ? .orange : .green)
-                    }
-                    ScrollView {
-                        OutputPreviews(store: store, output: output, live: true)
-                            .padding(.vertical, 6)
-                    }.disabled(store.isBusy)
-                    transport
-                }.padding(14).frame(minWidth: 460, idealWidth: 620)
+                if layout == "2 Left" {
+                    VSplitView {
+                        cuePane
+                        playbackPane.frame(minHeight: 250, idealHeight: 380)
+                    }.frame(minWidth: 520, idealWidth: 720)
+                    editPane.frame(minWidth: 460, idealWidth: 620).disabled(store.isBusy)
+                } else {
+                    cuePane
+                    VSplitView {
+                        editPane.frame(minHeight: 240, idealHeight: 380)
+                        playbackPane.frame(minHeight: 250, idealHeight: 420)
+                    }.frame(minWidth: 460, idealWidth: 620).disabled(store.isBusy)
+                }
             }
         }.frame(minWidth: 1000, minHeight: 700)
-            .onChange(of: store.sessionID) { _, _ in output.stopAll(); syphon.stop(); ndi.stop() }
-            .onDisappear { syphon.stop(); ndi.stop() }
+            .onChange(of: store.sessionID) { _ in output.stopAll(); syphon.stop(); ndi.stop() }
+            .onDisappear { controlsWindow.close(); syphon.stop(); ndi.stop() }
             .sheet(isPresented: Binding(get: { importSource != nil }, set: { if !$0 { importSource = nil } })) {
                 ImportPreview(store: store, source: importSource ?? "")
             }
@@ -76,14 +57,31 @@ struct OperatorView: View {
                 Button("OK") { store.errorMessage = nil }
             } message: { Text(store.errorMessage ?? "") }
     }
-    private var workspacePicker: some View {
-        Picker("Edit", selection: $editWorkspace) {
-            Text("Layout Setting").tag("Layout")
-            Text("Text Modify").tag("Text Modify")
-            Text("Cue Details").tag("Cue Details")
-            Text("OSC").tag("OSC")
-            Text("Video Output").tag("Video Output")
-        }.labelsHidden()
+    private var cuePane: some View {
+        VStack(spacing: 0) {
+            CueTable(store: store)
+            cueToolbar
+        }.frame(minWidth: 520, idealWidth: 720, minHeight: 300).disabled(store.isBusy)
+    }
+    private var editPane: some View {
+        EditWorkspaceView(store: store, output: output, osc: osc, syphon: syphon, ndi: ndi)
+    }
+    private var playbackPane: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("Playback").font(.headline)
+                Spacer()
+                Button("+ Output") { store.addOutput() }
+                    .disabled(!output.activeDisplayIDs.isEmpty)
+                Text(store.playback.isBlackout ? "BLACKOUT" : store.playback.liveFrame.map { "LIVE · \($0.cue.displayNumber)" } ?? "NO LIVE CUE")
+                    .foregroundStyle(store.playback.isBlackout ? .orange : .green)
+            }
+            ScrollView {
+                OutputPreviews(store: store, output: output, live: true)
+                    .padding(.vertical, 6)
+            }.disabled(store.isBusy)
+            if !controlsWindow.isVisible { ShowControlsView(store: store, output: output) }
+        }.padding(14)
     }
     private var cueToolbar: some View {
         ScrollView(.horizontal) {
@@ -112,45 +110,5 @@ struct OperatorView: View {
                 Button("Paste As Cues…") { importSource = NSPasteboard.general.string(forType: .string) ?? "" }
             }.controlSize(.small).fixedSize().padding(8)
         }.frame(height: 42)
-    }
-    private var transport: some View {
-        GroupBox("Show Controls") {
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Opacity")
-                    Spacer()
-                    Button { store.adjustMasterOpacity(by: -0.05) } label: { Image(systemName: "minus") }
-                        .disabled(store.playback.masterOpacity <= 0)
-                    Text("\(Int((store.playback.masterOpacity * 100).rounded()))%")
-                        .monospacedDigit().frame(width: 48)
-                    Button { store.adjustMasterOpacity(by: 0.05) } label: { Image(systemName: "plus") }
-                        .disabled(store.playback.masterOpacity >= 1)
-                }
-                HStack { Text("Blackout fade"); Spacer(); durationField(\.blackoutFadeDuration) }
-                Divider()
-                HStack(spacing: 8) {
-                    Button(action: store.previous) { Text("Previous").frame(maxWidth: .infinity, minHeight: 30) }.tint(.blue).disabled(store.isCueTransitioning)
-                    Button(action: store.go) { Text("GO / Next").frame(maxWidth: .infinity, minHeight: 30) }.tint(.green).disabled(store.isCueTransitioning)
-                    Button { store.toggleBlackout() } label: {
-                        Text(store.playback.isBlackout ? "Restore" : "Blackout").frame(maxWidth: .infinity, minHeight: 30)
-                    }.tint(.red)
-                }.buttonStyle(.borderedProminent)
-                HStack(spacing: 8) {
-                    Button { output.startConfigured(store: store) } label: { Text("Start Output").frame(maxWidth: .infinity, minHeight: 28) }
-                        .buttonStyle(.borderedProminent).tint(.orange)
-                        .disabled(store.project.outputs.allSatisfy { !$0.isEnabled || $0.displayID == nil } || store.isBusy)
-                    Button("Stop Output") { output.stopAll() }.disabled(output.activeDisplayIDs.isEmpty)
-                }
-                if let status = output.status { Text(status).font(.caption).foregroundStyle(.secondary) }
-                Text("Space: GO · ←: Previous · B: Blackout · Esc exits output")
-                    .font(.caption).foregroundStyle(.secondary)
-            }.padding(4)
-        }
-    }
-    private func durationField(_ keyPath: WritableKeyPath<TransitionSettings, Double>) -> some View {
-        NumericField(value: Binding(get: { store.project.transitions[keyPath: keyPath] }, set: { value in
-            store.change { $0.transitions[keyPath: keyPath] = min(10, max(0, value)) }
-        }), range: 0...10, step: 0.1)
-        .frame(width: 82)
     }
 }

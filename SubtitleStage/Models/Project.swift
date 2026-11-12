@@ -17,7 +17,7 @@ public enum TextAlignment: String, Codable, CaseIterable, Sendable {
 public struct TransitionSettings: Codable, Equatable, Sendable {
     public var subtitleFadeDuration: Double
     public var blackoutFadeDuration: Double
-    public init(subtitleFadeDuration: Double = 0.5, blackoutFadeDuration: Double = 0.5) {
+    public init(subtitleFadeDuration: Double = 0.5, blackoutFadeDuration: Double = 1) {
         self.subtitleFadeDuration = subtitleFadeDuration
         self.blackoutFadeDuration = blackoutFadeDuration
     }
@@ -107,7 +107,7 @@ extension OutputConfiguration {
 }
 
 public struct Project: Codable, Equatable, Sendable {
-    public var projectFormatVersion = 11
+    public var projectFormatVersion = 12
     public var name = "Untitled"
     public var canvases: [CanvasDefinition] = [CanvasDefinition()]
     public var cues: [Cue] = []
@@ -121,14 +121,16 @@ public struct Project: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let version = try c.decode(Int.self, forKey: .projectFormatVersion)
-        guard (1...11).contains(version) else { throw ProjectError.invalid("Unsupported project format version \(version).") }
+        guard (1...12).contains(version) else { throw ProjectError.invalid("Unsupported project format version \(version).") }
         name = try c.decode(String.self, forKey: .name)
         canvases = try c.decode([CanvasDefinition].self, forKey: .canvases)
         cues = try c.decode([Cue].self, forKey: .cues)
         outputs = try c.decode([OutputConfiguration].self, forKey: .outputs)
         if version == 1 {
             guard let canvas = canvases.first else { throw ProjectError.invalid("Project has no canvas.") }
-            languages = [.primary(canvas: canvas)]
+            var legacy = LanguageLayer.primary(canvas: canvas)
+            legacy.frame = PixelFrame(x: canvas.width * 0.05, y: 0, width: canvas.width * 0.9, height: canvas.height)
+            languages = [legacy]
         } else { languages = try c.decode([LanguageLayer].self, forKey: .languages) }
         transitions = try c.decodeIfPresent(TransitionSettings.self, forKey: .transitions) ?? TransitionSettings()
         // Explicit v1–7 migration: retain full-canvas Fit and automatic display size.
@@ -144,7 +146,8 @@ public struct Project: Codable, Equatable, Sendable {
         if version < 9 { for index in cues.indices { cues[index].importOrigin = nil } }
         if version < 10 { for index in outputs.indices { outputs[index].syphon = SyphonSettings() } }
         if version < 11 { for index in outputs.indices { outputs[index].ndi = NDISettings() } }
-        projectFormatVersion = 11
+        // v12 expands permitted layout coordinates and line spacing; v1–11 values remain unchanged.
+        projectFormatVersion = 12
     }
     public func text(for cue: Cue, languageID: UUID) -> String {
         languageID == languages.first?.id ? cue.text : cue.translations[languageID] ?? ""
@@ -157,7 +160,7 @@ public struct Project: Codable, Equatable, Sendable {
     public var canvas: CanvasDefinition { canvases[0] }
 
     public func validate() throws {
-        guard projectFormatVersion == 11 else { throw ProjectError.invalid("Unsupported project format version \(projectFormatVersion).") }
+        guard projectFormatVersion == 12 else { throw ProjectError.invalid("Unsupported project format version \(projectFormatVersion).") }
         guard transitions.subtitleFadeDuration.isFinite, (0...10).contains(transitions.subtitleFadeDuration),
               transitions.blackoutFadeDuration.isFinite, (0...10).contains(transitions.blackoutFadeDuration) else {
             throw ProjectError.invalid("Fade durations must be between 0 and 10 seconds.")
@@ -182,8 +185,8 @@ public struct Project: Codable, Equatable, Sendable {
         }
         for language in languages {
             let f = language.frame
-            guard [f.x, f.y, f.width, f.height, language.rotation.x, language.rotation.y, language.rotation.z].allSatisfy(\.isFinite), f.x >= 0, f.y >= 0,
-                  f.width >= 1, f.height >= 1, f.x + f.width <= 32768, f.y + f.height <= 32768,
+            guard [f.x, f.y, f.width, f.height, language.rotation.x, language.rotation.y, language.rotation.z].allSatisfy(\.isFinite), abs(f.x) <= 32768, abs(f.y) <= 32768,
+                  f.width >= 1, f.height >= 1, f.width <= 32768, f.height <= 32768,
                   language.outputIDs.allSatisfy({ id in outputs.contains { $0.id == id } }) else {
                 throw ProjectError.invalid("Invalid language layout or output assignment.")
             }
@@ -197,8 +200,8 @@ public struct Project: Codable, Equatable, Sendable {
                 let f = placement.frame
                 guard languages.contains(where: { $0.id == id }),
                       [f.x, f.y, f.width, f.height, placement.rotation.x, placement.rotation.y, placement.rotation.z].allSatisfy(\.isFinite),
-                      f.x >= 0, f.y >= 0, f.width >= 1, f.height >= 1,
-                      f.x + f.width <= 32768, f.y + f.height <= 32768 else {
+                      abs(f.x) <= 32768, abs(f.y) <= 32768, f.width >= 1, f.height >= 1,
+                      f.width <= 32768, f.height <= 32768 else {
                     throw ProjectError.invalid("Invalid output language layout.")
                 }
                 try Self.validateStyle(placement.style)
@@ -227,7 +230,7 @@ public struct Project: Codable, Equatable, Sendable {
     private static func validateStyle(_ s: TextStyle) throws {
         guard s.color.isValid, s.fontSize.isFinite, (1...2048).contains(s.fontSize),
               s.characterSpacing.isFinite, (-100...1000).contains(s.characterSpacing),
-              s.lineSpacing.isFinite, (0...2048).contains(s.lineSpacing) else {
+              s.lineSpacing.isFinite, (-2048...2048).contains(s.lineSpacing) else {
             throw ProjectError.invalid("Invalid text formatting.")
         }
     }

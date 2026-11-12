@@ -1,33 +1,6 @@
 import SwiftUI
 import SubtitleCore
 
-struct CueDetailsView: View {
-    @ObservedObject var store: ProjectStore
-    @FocusState private var focusedField: String?
-
-    var body: some View {
-        if let cue = store.selectedCue {
-            VStack(alignment: .leading, spacing: 12) {
-                TextField("Number", text: binding(cue.id, \.displayNumber)).focused($focusedField, equals: "number")
-                TextField("Name", text: binding(cue.id, \.name)).focused($focusedField, equals: "name")
-                TextField("Speaker", text: binding(cue.id, \.speaker)).focused($focusedField, equals: "speaker")
-                TextField("Notes", text: binding(cue.id, \.note), axis: .vertical)
-                    .lineLimit(3...8).focused($focusedField, equals: "notes")
-                Text("Editing cue details does not take a cue live.").font(.caption).foregroundStyle(.secondary)
-            }.textFieldStyle(.roundedBorder)
-                .onChange(of: focusedField) { _, _ in store.endHistoryGroup() }
-                .onDisappear { store.endHistoryGroup() }
-        } else {
-            Text("Select a cue to edit its details.").foregroundStyle(.secondary)
-        }
-    }
-
-    private func binding(_ id: UUID, _ key: WritableKeyPath<Cue, String>) -> Binding<String> {
-        Binding(get: { store.project.cues.first { $0.id == id }?[keyPath: key] ?? "" },
-                set: { store.editCueDetail(id, key: key, value: $0) })
-    }
-}
-
 struct RenumberCuesView: View {
     @ObservedObject var store: ProjectStore
     let ids: Set<UUID>

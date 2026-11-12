@@ -14,6 +14,9 @@ final class SyphonOutputManager: ObservableObject {
     private var inFlight = false
     private var targets: [SyphonTarget] = []
     private var sessionID: UUID?
+    private var validatedOutputs: [OutputConfiguration] = []
+    private var validatedCanvases: [CanvasDefinition] = []
+    private(set) var configurationValidationCount = 0
 
     func start(store: ProjectStore) {
         guard !isStarting, activeOutputIDs.isEmpty, !store.isBusy else { return }
@@ -21,6 +24,7 @@ final class SyphonOutputManager: ObservableObject {
         do { prepared = try SyphonTarget.configured(in: store.project) }
         catch { status = error.localizedDescription; return }
         generation += 1
+        validatedOutputs = []; validatedCanvases = []; configurationValidationCount = 0
         let token = generation, session = store.sessionID, transport = transport
         isStarting = true; status = "Starting Syphon…"
         queue.async { [weak self] in
@@ -59,9 +63,16 @@ final class SyphonOutputManager: ObservableObject {
         let transport = transport
         queue.async { transport.stop() }
     }
+    private func configurationMatches(_ project: Project) -> Bool {
+        guard project.outputs != validatedOutputs || project.canvases != validatedCanvases else { return true }
+        configurationValidationCount += 1
+        guard (try? SyphonTarget.configured(in: project)) == targets else { return false }
+        validatedOutputs = project.outputs; validatedCanvases = project.canvases
+        return true
+    }
     private func tick(store: ProjectStore) {
         guard !activeOutputIDs.isEmpty, !inFlight else { return }
-        guard store.sessionID == sessionID, (try? SyphonTarget.configured(in: store.project)) == targets else {
+        guard store.sessionID == sessionID, configurationMatches(store.project) else {
             stop(); status = "Syphon stopped after project or output settings changed. Review settings and start again."; return
         }
         inFlight = true
