@@ -33,6 +33,12 @@ struct OperatorWindowBridge: NSViewRepresentable {
         }
         func attach(_ window: NSWindow) {
             self.window = window; window.delegate = self
+            window.collectionBehavior.remove([.fullScreenPrimary, .fullScreenAuxiliary])
+            window.collectionBehavior.insert(.fullScreenNone)
+            if let zoom = window.standardWindowButton(.zoomButton) {
+                zoom.target = window
+                zoom.action = #selector(NSWindow.zoom(_:))
+            }
             if !controlsOnly {
                 output.operatorWindow = window
                 appDelegate.store = store; appDelegate.output = output

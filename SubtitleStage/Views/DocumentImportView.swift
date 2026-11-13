@@ -13,8 +13,24 @@ struct DocumentImportView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(session.request.source == nil ? "Import Document" : "Re-import Document").font(.title2)
-            Text(session.request.url.lastPathComponent).foregroundStyle(.secondary)
-            Text("Choose the subtitle tracks, check the preview, then Import. Edit text in the cue table afterwards.").font(.caption)
+            HStack(alignment: .top) {
+                Text(session.request.url.lastPathComponent).foregroundStyle(.secondary)
+                Spacer()
+                if let parsed = session.parsed, !parsed.warnings.isEmpty {
+                    DisclosureGroup("Import notes (\(parsed.warnings.count))") {
+                        ScrollView { Text(parsed.warnings.joined(separator: "\n")).font(.caption) }.frame(maxHeight: 90)
+                    }.frame(maxWidth: 380)
+                }
+            }
+            Text("Subtitle columns are created automatically using the original names. Click Import to finish on this page.").font(.caption)
+            if !session.baseline.cues.isEmpty {
+                Picker("Insert new cues", selection: $session.insertionAfterCueID) {
+                    Text("At the end").tag(nil as UUID?)
+                    ForEach(Array(session.baseline.cues.enumerated()), id: \.element.id) { index, cue in
+                        Text("After Cue \(cue.displayNumber) · row \(index + 1)").tag(Optional(cue.id))
+                    }
+                }.disabled(session.busy)
+            }
             if let error = session.error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
             if session.busy { ProgressView("Preparing preview…") }
             HSplitView {
@@ -37,18 +53,11 @@ struct DocumentImportView: View {
                                     .onChange(of: session.configuration.headerRow) { _ in session.suggestColumns(); session.updatePreview() }
                             }
                             ForEach(session.textColumns, id: \.self) { column in
-                                VStack(alignment: .leading) {
+                                let layer = session.languages.first { session.configuration.columns[column] == .text($0.id) }
+                                HStack {
                                     Text(session.columnTitle(column)).font(.headline)
-                                    Picker("Import into", selection: Binding(get: {
-                                        if case .text(let id) = session.configuration.columns[column] { return id.uuidString }
-                                        return "ignore"
-                                    }, set: { value in
-                                        session.configuration.columns[column] = UUID(uuidString: value).map(ImportColumn.text) ?? .ignore
-                                        session.updatePreview()
-                                    })) {
-                                        Text("Do not import").tag("ignore")
-                                        ForEach(session.languages) { Text($0.name).tag($0.id.uuidString) }
-                                    }
+                                    Spacer()
+                                    Text(layer?.name ?? "Not imported").foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -59,15 +68,6 @@ struct DocumentImportView: View {
                         }
                         Toggle("Include blank / disabled cues", isOn: $session.includeSkipped)
                             .onChange(of: session.includeSkipped) { _ in session.updatePreview() }
-                        if !session.baseline.cues.isEmpty, session.request.source == nil {
-                            Toggle("Merge with matching cue numbers", isOn: Binding(get: { session.matchMode == .cueNumber }, set: {
-                                session.matchMode = $0 ? .cueNumber : .source; session.updatePreview()
-                            }))
-                        }
-                        if !session.draftLanguages.isEmpty {
-                            Text("New Surtitles: " + session.draftLanguages.filter { layer in session.configuration.columns.values.contains(.text(layer.id)) }.map(\.name).joined(separator: ", "))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
                         Text("Source IDs and cue numbers are handled automatically. Existing project data stays unchanged until Import.")
                             .font(.caption).foregroundStyle(.secondary)
                     }.padding(8)
@@ -94,11 +94,6 @@ struct DocumentImportView: View {
                         }.padding(.vertical, 3)
                     }.frame(minWidth: 450)
                 } else { Text("Preview will appear here.").frame(maxWidth: .infinity, maxHeight: .infinity) }
-            }
-            if let parsed = session.parsed, !parsed.warnings.isEmpty {
-                DisclosureGroup("Import notes") {
-                    ScrollView { Text(parsed.warnings.joined(separator: "\n")).font(.caption) }.frame(maxHeight: 75)
-                }
             }
             HStack {
                 Button("Cancel") { session.cancel(); dismiss() }.keyboardShortcut(.cancelAction)

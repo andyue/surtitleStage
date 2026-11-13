@@ -251,3 +251,10 @@ v0.5.4 其他調整：
 ### Operator layout (v0.5.4)
 
 Use the top-bar Layout picker: **2 Left** stacks Cue/Playback on the left with Edit on the right; **2 Right** puts Cue on the left and Edit/Playback on the right. The choice is saved on this Mac. **Float Show Controls** opens only the transport in an always-on-top utility window; the preview stays in the main window. Close it or choose **Dock Show Controls** to return the controls without stopping output. Click inside Show Controls to arm its hotkeys; text editing still takes priority. The panel floats above normal windows, below the dedicated production output.
+
+### Local v0.5.5 (build 17)
+
+- Surtitle column headers: X deletes the column (Undo available); drag = left/right to reorder, or use the Move Left / Move Right context menu. At least one column remains.
+- Import Document automatically creates subtitle columns using their source names. Source ID / Cue Number are automatic, Group / Status is ignored. Existing shows offer At the end or After Cue on the same page before Import.
+- Operator and Show Controls windows retain normal resizing/maximize and disable native full screen to avoid moving production windows between Spaces.
+- Verification: V0.5.5_VERIFICATION.md. GitHub release remains v0.5.4 until separately published.

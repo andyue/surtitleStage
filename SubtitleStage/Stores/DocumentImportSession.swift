@@ -10,6 +10,7 @@ struct DocumentImportRequest: Identifiable {
 
 @MainActor
 final class DocumentImportSession: ObservableObject {
+    @Published var insertionAfterCueID: UUID? = nil // nil means append, never the current selection.
     @Published var includeSkipped = false
     private var importedPrimaryName: String?
     @Published var draftLanguages: [LanguageLayer] = []
@@ -93,7 +94,7 @@ final class DocumentImportSession: ObservableObject {
         return (0..<sheet.columnCount).filter { column in
             if parsed?.kind == "glypheo" { return column >= 3 }
             let name = columnTitle(column).lowercased().replacingOccurrences(of: " ", with: "")
-            if ["notes", "note", "備註", "group/status", "speaker", "character", "角色"].contains(name) { return false }
+            if ["notes", "note", "備註", "group/status", "groupstatus", "group", "status", "speaker", "character", "角色"].contains(name) { return false }
             switch configuration.columns[column] {
             case .key, .number, .speaker, .note, .target: return false
             default: return true
@@ -116,10 +117,8 @@ final class DocumentImportSession: ObservableObject {
             let normalized = title.lowercased().replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "_", with: "")
             if ["sourceid", "id", "stableid", "來源id"].contains(normalized), !configuration.columns.values.contains(.key) { configuration.columns[column] = .key; continue }
             if ["cuenumber", "cue", "number", "編號"].contains(normalized), !configuration.columns.values.contains(.number) { configuration.columns[column] = .number; continue }
-            if ["notes", "note", "備註", "group/status", "speaker", "character", "角色"].contains(normalized) { configuration.columns[column] = .ignore; continue }
-            if let existing = languages.first(where: { $0.name == title && !used.contains($0.id) }) {
-                configuration.columns[column] = .text(existing.id); used.insert(existing.id)
-            } else if baseline.cues.isEmpty, baseline.languages.count == 1, used.isEmpty {
+            if ["notes", "note", "備註", "group/status", "groupstatus", "group", "status", "speaker", "character", "角色"].contains(normalized) { configuration.columns[column] = .ignore; continue }
+            if baseline.cues.isEmpty, baseline.languages.count == 1, used.isEmpty {
                 let id = baseline.languages[0].id
                 importedPrimaryName = title
                 configuration.columns[column] = .text(id); used.insert(id)
@@ -181,7 +180,10 @@ final class DocumentImportSession: ObservableObject {
     }
     func apply(store: ProjectStore, completion: @escaping () -> Void) {
         guard let plan else { return }
-        let keys = selectedKeys, project = importProject, after = store.playback.selectedCueID, live = store.playback.liveCueID
+        guard insertionAfterCueID == nil || baseline.cues.contains(where: { $0.id == insertionAfterCueID }) else {
+            error = "Select an existing cue for the insertion position."; return
+        }
+        let keys = selectedKeys, project = importProject, after = insertionAfterCueID, live = store.playback.liveCueID
         perform {
             let result = try await importBackground { try ImportDiff.applying(plan, selectedKeys: keys, to: project, after: after, liveCueID: live) }
             try store.commitImport(result, baseline: self.baseline, sessionID: self.sessionID,

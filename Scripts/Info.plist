@@ -1,22 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleDevelopmentRegion</key><string>en</string>
-<key>CFBundleExecutable</key><string>SubtitleStage</string>
-<key>CFBundleIdentifier</key><string>local.SubtitleStage</string>
-<key>CFBundleName</key><string>SubtitleStage</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleIconFile</key><string>AppIcon</string>
-<key>CFBundleShortVersionString</key><string>0.5.4</string>
-<key>CFBundleVersion</key><string>16</string>
-<key>LSMinimumSystemVersion</key><string>13.0</string>
-<key>NSHighResolutionCapable</key><true/>
-<key>NSPrincipalClass</key><string>NSApplication</string>
-<key>UTExportedTypeDeclarations</key><array><dict>
-<key>UTTypeIdentifier</key><string>local.SubtitleStage.project</string>
-<key>UTTypeDescription</key><string>SubtitleStage Project</string>
-<key>UTTypeConformsTo</key><array><string>public.json</string></array>
-<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>substage</string></array></dict>
-</dict></array>
-<key>NSLocalNetworkUsageDescription</key><string>SubtitleStage sends live NDI video and receives OSC control on your local network.</string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>SubtitleStage</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.SubtitleStage</string>
+	<key>CFBundleName</key>
+	<string>SubtitleStage</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.5.5</string>
+	<key>CFBundleVersion</key>
+	<string>18</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>SubtitleStage sends live NDI video and receives OSC control on your local network.</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>SubtitleStage Project</string>
+			<key>UTTypeIdentifier</key>
+			<string>local.SubtitleStage.project</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>substage</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

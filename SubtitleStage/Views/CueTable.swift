@@ -82,7 +82,13 @@ struct CueTable: View {
                                 SurtitleHeader(store: store, language: language).frame(width: columnWidth, height: 34)
                                     .overlay(alignment: .leading) { Divider() }
                             }
-                            Image(systemName: "equal").frame(width: 30, height: 34)
+                            Color.clear.frame(width: 30, height: 34)
+                                .contentShape(Rectangle())
+                                .dropDestination(for: String.self) { values, _ in
+                                    guard let value = values.first, value.hasPrefix("surtitle:"),
+                                          let id = UUID(uuidString: String(value.dropFirst(9))) else { return false }
+                                    return store.moveSurtitle(id: id, to: nil)
+                                }
                         }.background(.bar)
                     }
                 }.frame(minWidth: geometry.size.width, minHeight: geometry.size.height, alignment: .topLeading)
@@ -214,7 +220,12 @@ private struct SurtitleHeader: View {
     @State private var editing = false
     @FocusState private var focused: Bool
     var body: some View {
-        Group {
+        HStack(spacing: 3) {
+            Button { store.deleteSurtitle(id: language.id) } label: { Image(systemName: "xmark") }
+                .buttonStyle(.plain).padding(.leading, 5)
+                .disabled(store.project.languages.count <= 1)
+                .help("Delete this Surtitle column (Undo is available)")
+            Group {
             if editing {
                 TextField("Surtitle name", text: Binding(get: { language.name }, set: { value in store.editLanguage(language.id) { $0.name = value } }))
                     .textFieldStyle(.roundedBorder).padding(.horizontal, 6).focused($focused)
@@ -227,6 +238,24 @@ private struct SurtitleHeader: View {
                     .onTapGesture(count: 2) { editing = true; store.selectedSurtitleID = language.id }
                     .help("Click to select; double-click to rename this Surtitle")
             }
+            }
+            Image(systemName: "equal").padding(.horizontal, 5).contentShape(Rectangle())
+                .draggable("surtitle:" + language.id.uuidString)
+                .help("Drag left or right to reorder this Surtitle")
+        }
+        .contentShape(Rectangle())
+        .dropDestination(for: String.self) { values, _ in
+            guard let value = values.first, value.hasPrefix("surtitle:"),
+                  let id = UUID(uuidString: String(value.dropFirst(9))) else { return false }
+            return store.moveSurtitle(id: id, to: language.id)
+        }
+        .contextMenu {
+            Button("Move Left") { store.moveSurtitle(id: language.id, by: -1) }
+                .disabled(store.project.languages.first?.id == language.id)
+            Button("Move Right") { store.moveSurtitle(id: language.id, by: 1) }
+                .disabled(store.project.languages.last?.id == language.id)
+            Button("Delete Surtitle") { store.deleteSurtitle(id: language.id) }
+                .disabled(store.project.languages.count <= 1)
         }
     }
 }

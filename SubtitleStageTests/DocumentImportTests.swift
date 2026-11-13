@@ -152,34 +152,33 @@ extension DocumentImportTests {
     @MainActor func testImportWorkspaceNativeSnapshot() async throws {
         guard ProcessInfo.processInfo.environment["SUBTITLESTAGE_UI_CHECK"] == "1" else { throw XCTSkip("Desktop import snapshot") }
         _ = NSApplication.shared
-        let store = ProjectStore()
-        let request = DocumentImportRequest(url: URL(fileURLWithPath: "/tmp/Rehearsal.xlsx"))
+        var input = Project()
+        input.languages[0].name = "中文"
+        input.languages.append(LanguageLayer(name: "English", frame: input.languages[0].frame))
+        input.cues = [Cue(displayNumber: "1", text: "今晚，我們在這裡相遇。")]
+        input.cues[0].translations[input.languages[1].id] = "Tonight we meet here."
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".xlsx")
+        try SpreadsheetExporter.data(project: input).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = ProjectStore(); store.addCue()
+        let request = DocumentImportRequest(url: url)
         let session = DocumentImportSession(request: request, store: store)
-        session.parsed = ParsedDocument(kind: "xlsx")
-        session.hasPreview = true
-        var row = DocumentImportRow(); row.key = "SCENE-1"
-        row.content.speaker = "王子"; row.content.number = "1"
-        row.content.texts[store.project.languages[0].id] = "今晚，我們在這裡相遇。\nTonight we meet here."
-        session.rows = [row]
+        session.load()
+        for _ in 0..<3000 where session.busy { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertNil(session.error); XCTAssertNotNil(session.plan)
+        XCTAssertEqual(session.draftLanguages.map(\.name), ["中文", "English"])
         let window = NSWindow(contentRect: NSRect(x: -6000, y: -6000, width: 1040, height: 740), styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         defer { window.close() }
-        for phase in ["workspace", "diff"] {
-            if phase == "diff" {
-                let source = ImportSource(name: "Rehearsal", kind: "xlsx", configuration: session.configuration, hasStableKeys: true)
-                session.plan = try ImportDiff.plan(project: store.project, source: source, rows: session.rows, reimport: false)
-                session.selectedKeys = [row.key]
-            }
-            let hosting = NSHostingView(rootView: DocumentImportView(store: store, request: request, preparedSession: session))
-            window.contentView = hosting; window.orderFront(nil)
-            try await Task.sleep(for: .milliseconds(500))
-            hosting.layoutSubtreeIfNeeded()
-            let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
-            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
-            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
-            try png.write(to: FileManager.default.temporaryDirectory.appendingPathComponent("SubtitleStage-import-\(phase).png"))
-            XCTAssertGreaterThan(png.count, 10000)
-        }
+        let hosting = NSHostingView(rootView: DocumentImportView(store: store, request: request, preparedSession: session))
+        window.contentView = hosting; window.orderFront(nil)
+        try await Task.sleep(for: .milliseconds(500))
+        hosting.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+        let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+        try png.write(to: FileManager.default.temporaryDirectory.appendingPathComponent("SubtitleStage-import-single-page.png"))
+        XCTAssertGreaterThan(png.count, 10000)
     }
 }
 

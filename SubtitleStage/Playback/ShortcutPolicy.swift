@@ -28,7 +28,7 @@ public struct HotkeyChord: Codable, Equatable, Sendable {
 
 public struct HotkeyConfiguration: Codable, Equatable, Sendable {
     public var bindings: [PlaybackShortcut: HotkeyChord]
-    public init(bindings: [PlaybackShortcut: HotkeyChord] = [.go: HotkeyChord(keyCode: 49, label: "Space"), .stopOutput: HotkeyChord(keyCode: 53, label: "Escape")]) {
+    public init(bindings: [PlaybackShortcut: HotkeyChord] = [.go: HotkeyChord(keyCode: 49, label: "Space"), .blackout: HotkeyChord(keyCode: 53, label: "Escape")]) {
         self.bindings = bindings
     }
     public mutating func assign(_ chord: HotkeyChord?, to action: PlaybackShortcut) throws {
